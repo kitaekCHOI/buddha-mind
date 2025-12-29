@@ -8,14 +8,18 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 // Helper to safely get AI instance
 const getAIClient = () => {
   try {
-    // Check if API key exists to avoid SDK throwing "API Key must be set" immediately
-    if (!process.env.API_KEY) {
-      console.warn("API_KEY is missing in process.env");
+    // Check for process.env safety (browsers might not have 'process' defined globally)
+    // eslint-disable-next-line no-restricted-globals
+    const env = typeof process !== 'undefined' ? process.env : null;
+    const apiKey = env?.API_KEY;
+
+    if (!apiKey) {
+      // Log a warning only once effectively, or handle silently in components
       return null;
     }
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return new GoogleGenAI({ apiKey: apiKey });
   } catch (error) {
-    console.error("Failed to initialize GoogleGenAI:", error);
+    console.warn("GoogleGenAI initialization skipped:", error);
     return null;
   }
 };
@@ -40,7 +44,10 @@ const DailyWisdom = () => {
       try {
         const ai = getAIClient();
         if (!ai) {
-          throw new Error("API Key not available");
+          // If no API key, use fallback immediately without throwing an error
+          setQuote("모든 것은 마음에서 일어납니다. 잠시 숨을 고르세요.");
+          setLoading(false);
+          return;
         }
         
         const response = await ai.models.generateContent({
@@ -49,8 +56,9 @@ const DailyWisdom = () => {
         });
         setQuote(response.text || "마음의 평화는 당신 안에 있습니다.");
       } catch (error) {
-        console.error("Error fetching quote:", error);
-        setQuote("모든 것은 마음에서 일어납니다. 잠시 숨을 고르세요.");
+        // Fallback for network errors
+        console.warn("Could not fetch quote from AI, using default.");
+        setQuote("지나간 일은 지나간 대로, 다가올 일은 다가올 대로 두십시오. 지금 이 순간에 머무르십시오.");
       } finally {
         setLoading(false);
       }
@@ -415,6 +423,7 @@ const MonkChat = () => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use a ref to store the Chat session to persist context across renders
@@ -430,8 +439,10 @@ const MonkChat = () => {
           systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
         },
       });
+      setIsApiAvailable(true);
     } else {
-      setMessages(prev => [...prev, { role: 'model', text: "(시스템: API 키가 설정되지 않아 AI 상담을 이용할 수 없습니다.)" }]);
+      setIsApiAvailable(false);
+      setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 현재 AI 설정(API Key) 문제로 인해 상담 기능을 이용할 수 없습니다." }]);
     }
   }, []);
 
@@ -444,11 +455,11 @@ const MonkChat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !isApiAvailable) return;
     
     // Safety check for chat session
     if (!chatSessionRef.current) {
-        setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "죄송합니다. API 키 문제로 연결할 수 없습니다." }]);
+        setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "시스템 오류: 연결이 끊어졌습니다." }]);
         setInput('');
         return;
     }
@@ -467,7 +478,7 @@ const MonkChat = () => {
         setMessages(prev => [...prev, { role: 'model', text: responseText }]);
       }
     } catch (error) {
-      console.error("Chat error:", error);
+      console.warn("Chat error:", error);
       setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 잠시 마음의 연결이 고르지 못합니다. 다시 말씀해 주시겠습니까?" }]);
     } finally {
       setIsTyping(false);
@@ -518,12 +529,13 @@ const MonkChat = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="마음의 고민을 털어놓으세요..."
-            className="flex-1 p-3 rounded-full bg-stone-100 border-none focus:ring-2 focus:ring-stone-400 outline-none text-stone-700 placeholder-stone-400"
+            disabled={!isApiAvailable}
+            placeholder={isApiAvailable ? "마음의 고민을 털어놓으세요..." : "상담 기능을 이용할 수 없습니다."}
+            className="flex-1 p-3 rounded-full bg-stone-100 border-none focus:ring-2 focus:ring-stone-400 outline-none text-stone-700 placeholder-stone-400 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            disabled={isTyping || !input.trim()}
+            disabled={isTyping || !input.trim() || !isApiAvailable}
             className="p-3 bg-stone-800 text-white rounded-full hover:bg-stone-700 disabled:opacity-50 transition-colors"
           >
             <Send size={20} />
