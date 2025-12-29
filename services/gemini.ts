@@ -2,8 +2,8 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { ChatMessage } from '../types';
 
 // Initialize the API client
-// Note: process.env.API_KEY is injected by the environment
-const apiKey = process.env.API_KEY || '';
+// Ensure we don't crash if API_KEY is missing in dev environment
+const apiKey = process.env.API_KEY || 'dummy-key';
 const ai = new GoogleGenAI({ apiKey });
 
 const SYSTEM_INSTRUCTION = `
@@ -43,6 +43,7 @@ export const generateDailyQuote = async (): Promise<string> => {
     });
     return response.text || '"마음이 모든 것이다. 당신이 생각하는 대로 된다." - 붓다';
   } catch (error) {
+    console.error("Daily Quote Error:", error);
     return '"오늘 하루도 자비로운 마음으로 살아가십시오." - 마음의 등불';
   }
 };
