@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -20,8 +20,37 @@ const getAIClient = () => {
   }
 };
 
+// --- Data: Buddhist Scriptures ---
+const SCRIPTURES = [
+  {
+    id: 'heart',
+    title: '반야심경',
+    content: `마하반야바라밀다심경\n\n관자재보살 행심반야바라밀다시 조견오온개공 도일체고액\n사리자 색불이공 공불이색 색즉시공 공즉시색 수상행식 역부여시\n사리자 시제법공상 불생불멸 불구부정 부증불감\n시고 공중무색 무수상행식 무안이비설신의 무색성향미촉법\n무안계 내지 무의식계 무무명 역무무명진 내지 무노사 역무노사진\n무고집멸도 무지 역무득 이무소득고\n보리살타 의반야바라밀다고 심무가애 무가애고 무유공포 원리전도몽상 구경열반\n삼세제불 의반야바라밀다고 득아뇩다라삼먁삼보리\n고지 반야바라밀다 시대신주 시대명주 시무상주 시무등등주\n능제일체고 진실불허 고설반야바라밀다주 즉설주왈\n\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하`
+  },
+  {
+    id: 'dharani',
+    title: '신묘장구대다라니',
+    content: `나모라 다나다라 야야 나막알약 바로기제 새바라야\n모지사다바야 마하사다바야 마하가로 니가야\n옴 살바 바예수 다라나 가라야 다사명 나막까리다바\n이맘알야 바로기제 새바라 다바 니라간타 나막하리나야\n마발다 이사미 살발타 사다남 수반 아예염\n살바다나 바바말아 미수다감 다냐타\n옴 아로계 아로가 마지로가 지가란제 혜혜하례\n마하모지 사다바 사마라 사마라 하리나야\n구로구로 갈마 사다야 사다야 도로도로 미연제\n마하미연제 다라다라 다린나례 새바라 자라자라\n마라 미마라 아마라 몰제 예혜혜\n로계 새바라 라아 미사미 나사야 나베 사미사미\n나사야 모하자라 미사미 나사야 호로호로 마라호로\n하례 바나마 나바 사라사라 시리시리 소로소로\n못자못자 모다야 모다야 매다리야 니라간타\n가마사 날사남 바라 하라나야 마낙 사바하\n싯다야 사바하 마하싯다야 사바하\n싯다유예 새바라야 사바하 니라간타야 사바하\n바라하 목카싱하 목카야 사바하 바나마 하따야 사바하\n자가라 욕다야 사바하 상카섭나녜 모다나야 사바하\n마하라 구타다라야 사바하 바마사간타 이사시체다\n가릿나 이나야 사바하 먀가라 잘마이바 사나야 사바하\n\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하`
+  },
+  {
+    id: 'beopseong',
+    title: '법성게',
+    content: `법성원융무이상 제법부동본래적\n무명무상절일체 증지소지비여경\n진성심심극미묘 불수자성수연성\n일중일체다중일 일즉일체다즉일\n일미진중함시방 일체진중역여시\n무량원겁즉일념 일념즉시무량겁\n구세십세호상즉 잉불잡란격별성\n초발심시변정각 생사열반상공화\n이사명연무분별 십불보현대인경\n능인해인삼매중 번출여의부사의\n우보익생만허공 중생수기득이익\n시고행자환본제 파식망상필부득\n무연선교착여의 귀가수분득자량\n이다라니무진보 장엄법계실보전\n궁좌실제중도상 구래부동명위불`
+  },
+  {
+    id: 'diamond',
+    title: '금강경 (제1분)',
+    content: `제1분 법회인유분\n\n이와 같이 내가 들었다.\n어느 때 부처님께서 사위국 기수급고독원에서 큰 비구들 천이백오십 인과 함께 계시었다.\n그 때 세존께서는 식사 때가 되어 가사를 입으시고 발우를 가지시고 사위성에 들어가시어 차례로 밥을 비시었다.\n본래의 처소로 돌아와 진지를 잡수시고 가사와 발우를 거두시고 발을 씻으신 뒤 자리를 펴고 앉으셨다.\n\n제2분 선현기청분\n\n그 때 장로 수보리가 대중 가운데 있다가 곧 자리에서 일어나 옷깃을 바로 하고 오른쪽 무릎을 땅에 꿇으며 합장하고 부처님께 공경히 여쭈었다.\n"희유하십니다, 세존이시여.\n여래께서는 모든 보살들을 잘 호념하시고 모든 보살들에게 잘 부촉하십니다.\n세존이시여, 선남자 선여인이 아뇩다라삼먁삼보리심을 발하고는 마땅히 어떻게 머물며 어떻게 그 마음을 항복받아야 합니까?"\n부처님께서 말씀하시었다.\n"훌륭하고 훌륭하다, 수보리여.\n그대 말과 같이 여래는 모든 보살을 잘 호념하고 모든 보살에게 잘 부촉하느니라.\n너는 이제 자세히 들으라. 마땅히 너를 위하여 설하리라.\n선남자 선여인이 아뇩다라삼먁삼보리심을 발하고는 마땅히 이와 같이 머물며 이와 같이 그 마음을 항복받을지니라."\n"예, 그렇습니다. 세존이시여. 즐거이 듣고자 하나이다."\n\n(이하 생략)`
+  },
+  {
+    id: 'cheonsu',
+    title: '천수경 (개경)',
+    content: `정구업진언\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n\n오방내외안위제신진언\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n\n개경게\n무상심심미묘법 백천만겁난조우\n아금문견득수지 원해여래진실의\n\n개법장진언\n옴 아라남 아라다\n옴 아라남 아라다\n옴 아라남 아라다\n\n천수천안 관자재보살 광대원만 무애대비심 대다라니 계청\n계수관음대비주 원력홍심상호신\n천비장엄보호지 천안광명변관조\n진실어중선밀어 무위심내기비심\n속령만족제희구 영사멸제제죄업\n천룡중성동자호 백천삼매돈훈수\n수지신시광명당 수지심시신통장\n세척진노원제해 초증보리방편문\n아금칭송서귀의 소원종심실원만\n\n나무대비관세음 원아속지일체법\n나무대비관세음 원아조득지혜안\n나무대비관세음 원아속도일체중\n나무대비관세음 원아조득선방편\n나무대비관세음 원아속승반야선\n나무대비관세음 원아조득월고해\n나무대비관세음 원아속득계정도\n나무대비관세음 원아조등원적산\n나무대비관세음 원아속회무위사\n나무대비관세음 원아조동법성신\n\n아약향도산 도산자최절\n아약향화탕 화탕자소멸\n아약향지옥 지옥자고갈\n아약향아귀 아귀자포만\n아약향수라 악심자조복\n아약향축생 자득대지혜\n\n(이하 신묘장구대다라니로 이어짐)`
+  }
+];
+
 // --- Types ---
-type Tab = 'daily' | 'meditation' | 'bowing' | 'chat';
+type Tab = 'daily' | 'meditation' | 'bowing' | 'scripture' | 'chat';
 type FontSize = 'small' | 'normal' | 'large';
 
 interface Message {
@@ -113,7 +142,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
       <div className="bg-white rounded-3xl p-8 shadow-xl border border-zen-100 max-w-sm w-full transform transition-all hover:scale-[1.02] duration-500">
         <div className="flex justify-center mb-6">
            <div className="p-3 bg-zen-50 rounded-full">
-             <Flower className="w-8 h-8 text-zen-500" />
+             <Sun className="w-8 h-8 text-zen-500" />
            </div>
         </div>
         <h2 className={`${text.xl} font-semibold text-zen-600 mb-6 tracking-widest serif-font`}>오늘의 법구</h2>
@@ -413,7 +442,139 @@ const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 4. AI Monk Counseling Component
+// 4. Scripture Reader Component
+const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
+  const [selectedScriptureId, setSelectedScriptureId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<number | null>(null);
+  const text = getTextClasses(fontSize);
+
+  const selectedScripture = SCRIPTURES.find(s => s.id === selectedScriptureId);
+
+  // Reset scroll to top when scripture opens
+  useEffect(() => {
+    if (selectedScriptureId && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [selectedScriptureId]);
+
+  // Auto-scroll logic: 1 line per second (approx 40px/s for readability)
+  useEffect(() => {
+    if (isPlaying && selectedScriptureId) {
+      intervalRef.current = window.setInterval(() => {
+        if (scrollContainerRef.current) {
+          // Smooth scroll by a small amount often, or 1 line (e.g., 36px) every 1000ms.
+          // The request said "1초에 한줄씩".
+          // We assume a line height roughly. Let's scroll 40px smoothly.
+          scrollContainerRef.current.scrollBy({ top: 40, behavior: 'smooth' });
+          
+          // Check if reached bottom to stop? Optional.
+          const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+          if (scrollTop + clientHeight >= scrollHeight - 10) {
+            setIsPlaying(false);
+          }
+        }
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isPlaying, selectedScriptureId]);
+
+  const togglePlay = () => setIsPlaying(!isPlaying);
+
+  if (selectedScripture) {
+    return (
+      <div className="flex flex-col h-full bg-zen-50 fade-in relative">
+        {/* Header for Reader */}
+        <div className="flex items-center p-4 border-b border-zen-100 bg-white/80 backdrop-blur-md z-10 sticky top-0">
+          <button 
+            onClick={() => {
+              setIsPlaying(false);
+              setSelectedScriptureId(null);
+            }}
+            className="p-2 -ml-2 rounded-full hover:bg-zen-100 text-zen-600 transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <h2 className={`${text.lg} font-bold text-zen-800 ml-2 serif-font flex-1`}>{selectedScripture.title}</h2>
+          <button
+            onClick={togglePlay}
+            className={`p-2 rounded-full transition-colors ${isPlaying ? 'text-terracotta-500 bg-orange-50' : 'text-zen-600 hover:bg-zen-100'}`}
+          >
+            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+          </button>
+        </div>
+
+        {/* Text Content */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-6 no-scrollbar"
+        >
+          <div className="max-w-xl mx-auto pb-32"> {/* Extra padding at bottom for scrolling */}
+            <p className={`${text['2xl']} leading-loose text-zen-800 font-serif whitespace-pre-wrap text-center`}>
+              {selectedScripture.content}
+            </p>
+          </div>
+        </div>
+        
+        {/* Floating Controls (Optional overlay) */}
+        {!isPlaying && (
+           <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 fade-in">
+             <button
+               onClick={togglePlay}
+               className="flex items-center gap-2 px-6 py-3 bg-zen-700 text-white rounded-full shadow-lg hover:bg-zen-800 transition-all active:scale-95"
+             >
+               <Play size={18} fill="currentColor" />
+               <span className="text-sm font-medium">자동 읽기 시작</span>
+             </button>
+           </div>
+        )}
+      </div>
+    );
+  }
+
+  // List View
+  return (
+    <div className="flex flex-col h-full p-6 fade-in overflow-y-auto">
+      <div className="flex flex-col items-center mb-8">
+        <div className="w-16 h-16 bg-zen-100 rounded-full flex items-center justify-center mb-4 text-zen-600">
+           <BookText size={32} />
+        </div>
+        <h2 className={`${text.xl} font-semibold text-zen-600 tracking-widest serif-font`}>불경 공부</h2>
+        <p className={`${text.sm} text-gray-400 mt-2`}>마음을 맑게 하는 경전</p>
+      </div>
+
+      <div className="grid gap-4 max-w-sm mx-auto w-full pb-20">
+        {SCRIPTURES.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setSelectedScriptureId(item.id)}
+            className="flex items-center p-5 bg-white rounded-2xl shadow-sm border border-zen-100 hover:border-zen-300 hover:shadow-md transition-all text-left group"
+          >
+            <div className="w-10 h-10 rounded-full bg-zen-50 text-zen-500 flex items-center justify-center mr-4 group-hover:bg-zen-500 group-hover:text-white transition-colors">
+              <BookOpen size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className={`${text.lg} font-bold text-zen-800 group-hover:text-zen-600 transition-colors serif-font`}>{item.title}</h3>
+            </div>
+            <div className="text-gray-300 group-hover:text-zen-400">
+              <ChevronLeft size={20} className="transform rotate-180" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// 5. AI Monk Counseling Component
 const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: '어서 오세요. 마음이 무거울 때 언제든 찾아오십시오.' }
@@ -578,15 +739,16 @@ export default function App() {
         {activeTab === 'daily' && <DailyWisdom fontSize={fontSize} />}
         {activeTab === 'meditation' && <MeditationTimer fontSize={fontSize} />}
         {activeTab === 'bowing' && <BowingCounter fontSize={fontSize} />}
+        {activeTab === 'scripture' && <ScriptureReader fontSize={fontSize} />}
         {activeTab === 'chat' && <MonkChat fontSize={fontSize} />}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="h-20 bg-white border-t border-zen-100 flex justify-around items-center px-4 pb-safe flex-shrink-0 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.05)] z-20">
+      <nav className="h-20 bg-white border-t border-zen-100 flex justify-around items-center px-2 pb-safe flex-shrink-0 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.05)] z-20">
         <NavButton 
           active={activeTab === 'daily'} 
           onClick={() => setActiveTab('daily')} 
-          icon={<BookOpen size={24} />} 
+          icon={<Sun size={24} />} 
           label="법구" 
         />
         <NavButton 
@@ -600,6 +762,12 @@ export default function App() {
           onClick={() => setActiveTab('bowing')} 
           icon={<Activity size={24} />} 
           label="108배" 
+        />
+        <NavButton 
+          active={activeTab === 'scripture'} 
+          onClick={() => setActiveTab('scripture')} 
+          icon={<BookText size={24} />} 
+          label="불경" 
         />
         <NavButton 
           active={activeTab === 'chat'} 
@@ -616,9 +784,9 @@ export default function App() {
 const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactElement; label: string }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 ${
+    className={`flex flex-col items-center justify-center flex-1 h-16 rounded-2xl transition-all duration-300 ${
         active 
-        ? 'text-zen-700 -translate-y-2' 
+        ? 'text-zen-700 -translate-y-1' 
         : 'text-gray-400 hover:text-zen-500'
     }`}
   >
@@ -628,7 +796,7 @@ const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
             strokeWidth: active ? 2.5 : 2 
         } as any)}
     </div>
-    <span className={`text-[11px] mt-1 font-medium ${active ? 'opacity-100' : 'opacity-70'}`}>
+    <span className={`text-[10px] mt-0.5 font-medium ${active ? 'opacity-100' : 'opacity-70'}`}>
         {label}
     </span>
   </button>
