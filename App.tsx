@@ -2,9 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
 import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity } from 'lucide-react';
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
+
+// Helper to safely get AI instance
+const getAIClient = () => {
+  try {
+    // Check if API key exists to avoid SDK throwing "API Key must be set" immediately
+    if (!process.env.API_KEY) {
+      console.warn("API_KEY is missing in process.env");
+      return null;
+    }
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI:", error);
+    return null;
+  }
+};
 
 // --- Types ---
 type Tab = 'daily' | 'meditation' | 'bowing' | 'chat';
@@ -24,6 +38,11 @@ const DailyWisdom = () => {
   useEffect(() => {
     const fetchQuote = async () => {
       try {
+        const ai = getAIClient();
+        if (!ai) {
+          throw new Error("API Key not available");
+        }
+        
         const response = await ai.models.generateContent({
           model: MODEL_NAME,
           contents: "Generate a short, profound, and soothing Buddhist quote or teaching in Korean. It should be one or two sentences long. Do not add explanations, just the quote and the source if applicable.",
@@ -284,7 +303,7 @@ const BowingCounter = () => {
     }
   };
 
-  const reset = () => {
+  const handleReset = () => {
     if (window.confirm('카운트를 초기화 하시겠습니까?')) {
       setCount(0);
     }
@@ -294,22 +313,44 @@ const BowingCounter = () => {
   const isCompleted = count === 108;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 fade-in">
+    <div className="flex flex-col items-center justify-center h-full p-6 fade-in relative overflow-hidden">
+      
+      {/* Congratulatory Overlay */}
+      {isCompleted && (
+        <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 fade-in">
+           <div className="bg-white p-8 rounded-3xl shadow-2xl border border-stone-100 flex flex-col items-center text-center transform transition-all duration-700">
+             <Flower className="w-24 h-24 text-amber-500 mb-6 lotus-spin" />
+             <h2 className="text-3xl font-bold text-stone-800 mb-3">정진 성취</h2>
+             <p className="text-stone-600 mb-8 leading-relaxed text-lg">
+               108번의 절을 통해<br/>
+               맑고 고요한 마음을 얻으셨습니다.<br/>
+               오늘도 평안하십시오.
+             </p>
+             <button
+               onClick={() => setCount(0)}
+               className="px-8 py-3 bg-stone-800 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg font-medium"
+             >
+               다시 시작하기
+             </button>
+           </div>
+        </div>
+      )}
+
       <h2 className="text-xl font-semibold text-stone-600 mb-8 tracking-widest">108배</h2>
 
       {/* Counter Circle */}
       <div className="relative w-64 h-64 flex items-center justify-center mb-8" onClick={handleBow}>
-         {/* Click ripple effect container (simplified) */}
+         {/* Click ripple effect container */}
         <div className="absolute inset-0 rounded-full bg-stone-50 border-4 border-stone-100 hover:border-stone-200 transition-colors cursor-pointer active:scale-95 duration-100 shadow-sm flex items-center justify-center">
+            {/* Background Circle */}
             <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 pointer-events-none">
             <circle
-                cx="128" // 256/2 approx, assuming container size matches but here relying on absolute positioning
+                cx="128" 
                 cy="128"
                 r="120"
                 stroke="none"
                 fill="none"
             />
-            {/* We use a simpler SVG logic here to match parent container size which is w-64 (256px) */}
             </svg>
             
              {/* Progress SVG */}
@@ -344,12 +385,6 @@ const BowingCounter = () => {
         </div>
       </div>
 
-      {isCompleted && (
-        <div className="mb-6 text-center animate-bounce text-stone-600">
-            <p>🙏 108배 정진을 마쳤습니다.</p>
-        </div>
-      )}
-
       {/* Controls */}
       <div className="flex gap-6 mb-8">
         <button 
@@ -360,7 +395,7 @@ const BowingCounter = () => {
           1배 올리기
         </button>
         <button 
-          onClick={reset}
+          onClick={handleReset}
           className="p-3 rounded-full bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors shadow-md"
           aria-label="Reset"
         >
@@ -387,12 +422,17 @@ const MonkChat = () => {
 
   useEffect(() => {
     // Initialize chat session on component mount
-    chatSessionRef.current = ai.chats.create({
-      model: MODEL_NAME,
-      config: {
-        systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
-      },
-    });
+    const ai = getAIClient();
+    if (ai) {
+      chatSessionRef.current = ai.chats.create({
+        model: MODEL_NAME,
+        config: {
+          systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
+        },
+      });
+    } else {
+      setMessages(prev => [...prev, { role: 'model', text: "(시스템: API 키가 설정되지 않아 AI 상담을 이용할 수 없습니다.)" }]);
+    }
   }, []);
 
   const scrollToBottom = () => {
@@ -404,7 +444,14 @@ const MonkChat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping || !chatSessionRef.current) return;
+    if (!input.trim() || isTyping) return;
+    
+    // Safety check for chat session
+    if (!chatSessionRef.current) {
+        setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "죄송합니다. API 키 문제로 연결할 수 없습니다." }]);
+        setInput('');
+        return;
+    }
 
     const userMessage = input.trim();
     setInput('');
