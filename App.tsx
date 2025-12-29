@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -8,15 +8,11 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 // Helper to safely get AI instance
 const getAIClient = () => {
   try {
-    // Check for process.env safety (browsers might not have 'process' defined globally)
     // eslint-disable-next-line no-restricted-globals
     const env = typeof process !== 'undefined' ? process.env : null;
     const apiKey = env?.API_KEY;
 
-    if (!apiKey) {
-      // Log a warning only once effectively, or handle silently in components
-      return null;
-    }
+    if (!apiKey) return null;
     return new GoogleGenAI({ apiKey: apiKey });
   } catch (error) {
     console.warn("GoogleGenAI initialization skipped:", error);
@@ -26,25 +22,72 @@ const getAIClient = () => {
 
 // --- Types ---
 type Tab = 'daily' | 'meditation' | 'bowing' | 'chat';
+type FontSize = 'small' | 'normal' | 'large';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
 }
 
+// --- Font Size Configuration ---
+const getTextClasses = (size: FontSize) => {
+  switch (size) {
+    case 'small':
+      return {
+        xs: 'text-xs',
+        sm: 'text-xs',
+        base: 'text-sm',
+        lg: 'text-base',
+        xl: 'text-lg',
+        '2xl': 'text-xl',
+        '3xl': 'text-2xl',
+        '4xl': 'text-3xl',
+        '5xl': 'text-4xl',
+        '6xl': 'text-5xl',
+      };
+    case 'large':
+      return {
+        xs: 'text-base',
+        sm: 'text-lg',
+        base: 'text-xl',
+        lg: 'text-2xl',
+        xl: 'text-3xl',
+        '2xl': 'text-4xl',
+        '3xl': 'text-5xl',
+        '4xl': 'text-6xl',
+        '5xl': 'text-7xl',
+        '6xl': 'text-8xl',
+      };
+    case 'normal':
+    default:
+      return {
+        xs: 'text-xs',
+        sm: 'text-sm',
+        base: 'text-base',
+        lg: 'text-lg',
+        xl: 'text-xl',
+        '2xl': 'text-2xl',
+        '3xl': 'text-3xl',
+        '4xl': 'text-4xl',
+        '5xl': 'text-5xl',
+        '6xl': 'text-6xl',
+      };
+  }
+};
+
 // --- Components ---
 
 // 1. Daily Wisdom Component
-const DailyWisdom = () => {
+const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
   const [quote, setQuote] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const text = getTextClasses(fontSize);
 
   useEffect(() => {
     const fetchQuote = async () => {
       try {
         const ai = getAIClient();
         if (!ai) {
-          // If no API key, use fallback immediately without throwing an error
           setQuote("모든 것은 마음에서 일어납니다. 잠시 숨을 고르세요.");
           setLoading(false);
           return;
@@ -56,8 +99,6 @@ const DailyWisdom = () => {
         });
         setQuote(response.text || "마음의 평화는 당신 안에 있습니다.");
       } catch (error) {
-        // Fallback for network errors
-        console.warn("Could not fetch quote from AI, using default.");
         setQuote("지나간 일은 지나간 대로, 다가올 일은 다가올 대로 두십시오. 지금 이 순간에 머무르십시오.");
       } finally {
         setLoading(false);
@@ -68,31 +109,37 @@ const DailyWisdom = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center fade-in">
-      <Flower className="w-16 h-16 text-amber-600 mb-6 opacity-80" />
-      <h2 className="text-xl font-semibold text-stone-600 mb-8 tracking-widest">오늘의 법구</h2>
-      
-      {loading ? (
-        <div className="animate-pulse text-stone-400">지혜를 구하는 중...</div>
-      ) : (
-        <div className="max-w-md p-8 bg-white shadow-lg rounded-2xl border border-stone-100">
-          <p className="text-2xl leading-relaxed text-stone-800 break-keep font-medium">
-            "{quote}"
-          </p>
+    <div className="flex flex-col items-center justify-center h-full p-6 text-center fade-in bg-gradient-to-b from-zen-50 to-white">
+      <div className="bg-white rounded-3xl p-8 shadow-xl border border-zen-100 max-w-sm w-full transform transition-all hover:scale-[1.02] duration-500">
+        <div className="flex justify-center mb-6">
+           <div className="p-3 bg-zen-50 rounded-full">
+             <Flower className="w-8 h-8 text-zen-500" />
+           </div>
         </div>
-      )}
+        <h2 className={`${text.xl} font-semibold text-zen-600 mb-6 tracking-widest serif-font`}>오늘의 법구</h2>
+        
+        {loading ? (
+          <div className={`${text.base} animate-pulse text-gray-400 py-10`}>지혜를 구하는 중...</div>
+        ) : (
+          <div className="space-y-4">
+            <p className={`${text['2xl']} leading-relaxed text-zen-800 break-keep font-medium serif-font`}>
+              "{quote}"
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 // 2. Meditation Timer Component
-const MeditationTimer = () => {
-  const [duration, setDuration] = useState<number>(5 * 60); // Default 5 min
+const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
+  const [duration, setDuration] = useState<number>(5 * 60); 
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
   const intervalRef = useRef<number | null>(null);
-  // AudioContext ref to persist across renders and ensure unlocking
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const text = getTextClasses(fontSize);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -100,7 +147,6 @@ const MeditationTimer = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Initialize/Resume AudioContext on user interaction
   const initAudio = () => {
     if (!audioCtxRef.current) {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -125,9 +171,8 @@ const MeditationTimer = () => {
       osc.connect(gain);
       gain.connect(ctx.destination);
       
-      // Bell sound simulation (Sine wave with long decay)
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
       
       gain.gain.setValueAtTime(0.5, ctx.currentTime);
@@ -141,10 +186,7 @@ const MeditationTimer = () => {
   };
 
   const toggleTimer = () => {
-    if (!isActive) {
-      // Unlock audio on Start
-      initAudio();
-    }
+    if (!isActive) initAudio();
     setIsActive(!isActive);
   };
 
@@ -163,7 +205,6 @@ const MeditationTimer = () => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && isActive) {
-      // Timer finished
       setIsActive(false);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -176,7 +217,6 @@ const MeditationTimer = () => {
     };
   }, [isActive, timeLeft]);
 
-  // Update timeLeft when duration changes (only if not active)
   const handleDurationChange = (newDuration: number) => {
     setDuration(newDuration);
     if (!isActive) {
@@ -188,64 +228,51 @@ const MeditationTimer = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 fade-in">
-      <h2 className="text-xl font-semibold text-stone-600 mb-8 tracking-widest">명상</h2>
+      <h2 className={`${text.xl} font-semibold text-zen-600 mb-8 tracking-widest serif-font`}>명상</h2>
       
-      {/* Timer Circle */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8">
-        <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90">
+      <div className="relative w-64 h-64 flex items-center justify-center mb-10">
+        {/* Background Blur */}
+        <div className={`absolute inset-0 rounded-full bg-zen-200 opacity-20 blur-xl transition-all duration-1000 ${isActive ? 'scale-110' : 'scale-100'}`}></div>
+        
+        <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 drop-shadow-lg">
+          <circle cx="128" cy="128" r="115" stroke="#E6EBE9" strokeWidth="6" fill="white" />
           <circle
-            cx="128"
-            cy="128"
-            r="120"
-            stroke="#e7e5e4"
-            strokeWidth="8"
-            fill="none"
-          />
-          <circle
-            cx="128"
-            cy="128"
-            r="120"
-            stroke="#d97706"
-            strokeWidth="8"
-            fill="none"
-            strokeDasharray={2 * Math.PI * 120}
-            strokeDashoffset={2 * Math.PI * 120 * (1 - progress / 100)}
+            cx="128" cy="128" r="115"
+            stroke="#5A7D71" strokeWidth="6" strokeLinecap="round" fill="none"
+            strokeDasharray={2 * Math.PI * 115}
+            strokeDashoffset={2 * Math.PI * 115 * (1 - progress / 100)}
             className="transition-all duration-1000 ease-linear"
           />
         </svg>
-        <div className="text-5xl font-light text-stone-800 z-10">
+        <div className={`${text['4xl']} font-light text-zen-800 z-10 tabular-nums tracking-wider`}>
           {formatTime(timeLeft)}
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex gap-6 mb-8">
+      <div className="flex gap-6 mb-10">
         <button 
           onClick={toggleTimer}
-          className="p-4 rounded-full bg-stone-800 text-white hover:bg-stone-700 transition-colors shadow-lg"
-          aria-label={isActive ? "Pause" : "Start"}
+          className="w-16 h-16 rounded-full bg-zen-500 text-white hover:bg-zen-600 transition-all shadow-lg hover:shadow-zen-200 flex items-center justify-center"
         >
           {isActive ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
         </button>
         <button 
           onClick={resetTimer}
-          className="p-4 rounded-full bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors shadow-md"
-          aria-label="Reset"
+          className="w-16 h-16 rounded-full bg-white text-zen-500 border border-zen-200 hover:bg-zen-50 transition-colors shadow-md flex items-center justify-center"
         >
-          <RotateCcw size={32} />
+          <RotateCcw size={28} />
         </button>
       </div>
 
-      {/* Duration Selector */}
-      <div className="flex gap-3">
+      <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-zen-100 shadow-sm">
         {[5, 10, 15, 30].map((min) => (
           <button
             key={min}
             onClick={() => handleDurationChange(min * 60)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-xl ${text.sm} font-medium transition-all ${
               duration === min * 60 
-                ? 'bg-amber-100 text-amber-800 border-amber-200' 
-                : 'bg-white text-stone-500 border border-stone-200 hover:bg-stone-50'
+                ? 'bg-zen-100 text-zen-700 shadow-sm' 
+                : 'text-gray-400 hover:text-zen-600'
             }`}
           >
             {min}분
@@ -257,9 +284,10 @@ const MeditationTimer = () => {
 };
 
 // 3. 108 Bows Counter Component
-const BowingCounter = () => {
+const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   const [count, setCount] = useState(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const text = getTextClasses(fontSize);
 
   const initAudio = () => {
     if (!audioCtxRef.current) {
@@ -285,15 +313,10 @@ const BowingCounter = () => {
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      // Simulate a wooden block sound (Moktak)
-      // Triangle wave for woodier character
       osc.type = 'triangle';
-      
-      // Short pitch drop
       osc.frequency.setValueAtTime(400, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
 
-      // Fast percussive envelope
       gain.gain.setValueAtTime(0.4, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
 
@@ -321,22 +344,21 @@ const BowingCounter = () => {
   const isCompleted = count === 108;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 fade-in relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center h-full p-6 fade-in relative overflow-hidden bg-zen-50">
       
-      {/* Congratulatory Overlay */}
       {isCompleted && (
-        <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 fade-in">
-           <div className="bg-white p-8 rounded-3xl shadow-2xl border border-stone-100 flex flex-col items-center text-center transform transition-all duration-700">
-             <Flower className="w-24 h-24 text-amber-500 mb-6 lotus-spin" />
-             <h2 className="text-3xl font-bold text-stone-800 mb-3">정진 성취</h2>
-             <p className="text-stone-600 mb-8 leading-relaxed text-lg">
-               108번의 절을 통해<br/>
-               맑고 고요한 마음을 얻으셨습니다.<br/>
-               오늘도 평안하십시오.
+        <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-6 fade-in">
+           <div className="flex flex-col items-center text-center">
+             <div className="w-24 h-24 bg-zen-50 rounded-full flex items-center justify-center mb-6">
+                <Flower className="w-12 h-12 text-zen-500 lotus-spin" />
+             </div>
+             <h2 className={`${text['3xl']} font-bold text-zen-800 mb-4 serif-font`}>정진 성취</h2>
+             <p className={`${text.base} text-zen-600 mb-10 leading-relaxed max-w-xs`}>
+               108배를 통해 맑고 고요한 마음을<br/>얻으셨습니다.
              </p>
              <button
                onClick={() => setCount(0)}
-               className="px-8 py-3 bg-stone-800 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg font-medium"
+               className={`px-10 py-4 bg-zen-800 text-white rounded-2xl hover:bg-zen-700 transition-all shadow-lg font-medium ${text.lg}`}
              >
                다시 시작하기
              </button>
@@ -344,105 +366,78 @@ const BowingCounter = () => {
         </div>
       )}
 
-      <h2 className="text-xl font-semibold text-stone-600 mb-8 tracking-widest">108배</h2>
+      <h2 className={`${text.xl} font-semibold text-zen-600 mb-8 tracking-widest serif-font`}>108배</h2>
 
-      {/* Counter Circle */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8" onClick={handleBow}>
-         {/* Click ripple effect container */}
-        <div className="absolute inset-0 rounded-full bg-stone-50 border-4 border-stone-100 hover:border-stone-200 transition-colors cursor-pointer active:scale-95 duration-100 shadow-sm flex items-center justify-center">
-            {/* Background Circle */}
+      <div className="relative w-72 h-72 flex items-center justify-center mb-10" onClick={handleBow}>
+        <div className="absolute inset-0 rounded-full bg-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] cursor-pointer active:scale-[0.98] transition-transform duration-100 flex items-center justify-center border border-zen-100">
+            {/* Background Ring */}
             <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 pointer-events-none">
-            <circle
-                cx="128" 
-                cy="128"
-                r="120"
-                stroke="none"
-                fill="none"
-            />
-            </svg>
-            
-             {/* Progress SVG */}
-            <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 256 256">
-                <circle
-                    cx="128"
-                    cy="128"
-                    r="120"
-                    stroke="#e7e5e4"
-                    strokeWidth="8"
-                    fill="none"
-                />
-                <circle
-                    cx="128"
-                    cy="128"
-                    r="120"
-                    stroke={isCompleted ? "#16a34a" : "#d97706"}
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={2 * Math.PI * 120}
-                    strokeDashoffset={2 * Math.PI * 120 * (1 - progress / 100)}
-                    className="transition-all duration-300 ease-out"
-                />
+              <circle cx="144" cy="144" r="128" stroke="#E6EBE9" strokeWidth="12" fill="none" />
+              <circle
+                  cx="144" cy="144" r="128"
+                  stroke={isCompleted ? "#5A7D71" : "#D97757"}
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  fill="none"
+                  strokeDasharray={2 * Math.PI * 128}
+                  strokeDashoffset={2 * Math.PI * 128 * (1 - progress / 100)}
+                  className="transition-all duration-300 ease-out"
+              />
             </svg>
 
             <div className="flex flex-col items-center z-10 select-none">
-                <span className={`text-6xl font-light ${isCompleted ? 'text-green-600' : 'text-stone-800'}`}>
+                <span className={`${text['5xl']} font-bold ${isCompleted ? 'text-zen-600' : 'text-zen-800'}`}>
                     {count}
                 </span>
-                <span className="text-stone-400 text-lg mt-2">/ 108</span>
+                <span className={`${text.base} text-gray-400 mt-1 font-medium`}>/ 108</span>
             </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex gap-6 mb-8">
+      <div className="flex gap-4 mb-4 w-full max-w-xs">
         <button 
           onClick={handleBow}
           disabled={isCompleted}
-          className={`px-8 py-3 rounded-full text-white font-medium shadow-lg transition-transform active:scale-95 ${isCompleted ? 'bg-gray-300' : 'bg-stone-800 hover:bg-stone-700'}`}
+          className={`flex-1 py-4 rounded-2xl text-white font-medium shadow-md transition-transform active:scale-95 ${text.lg} ${isCompleted ? 'bg-gray-300' : 'bg-zen-700 hover:bg-zen-800'}`}
         >
           1배 올리기
         </button>
         <button 
           onClick={handleReset}
-          className="p-3 rounded-full bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors shadow-md"
-          aria-label="Reset"
+          className="p-4 rounded-2xl bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
         >
           <RotateCcw size={24} />
         </button>
       </div>
-      
-      <p className="text-stone-400 text-sm">원을 터치하여 절 횟수를 세어보세요.</p>
     </div>
   );
 };
 
 // 4. AI Monk Counseling Component
-const MonkChat = () => {
+const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: '어서 오세요. 저는 당신의 이야기를 들어줄 마음의 벗입니다. 어떤 고민이 있으신가요?' }
+    { role: 'model', text: '어서 오세요. 마음이 무거울 때 언제든 찾아오십시오.' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Use a ref to store the Chat session to persist context across renders
   const chatSessionRef = useRef<Chat | null>(null);
+  const text = getTextClasses(fontSize);
 
   useEffect(() => {
-    // Initialize chat session on component mount
     const ai = getAIClient();
     if (ai) {
       chatSessionRef.current = ai.chats.create({
         model: MODEL_NAME,
         config: {
-          systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
+          systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma). Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep.",
         },
       });
       setIsApiAvailable(true);
     } else {
       setIsApiAvailable(false);
-      setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 현재 AI 설정(API Key) 문제로 인해 상담 기능을 이용할 수 없습니다." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "시스템 연결이 원활하지 않습니다 (API Key 누락)." }]);
     }
   }, []);
 
@@ -457,12 +452,7 @@ const MonkChat = () => {
   const handleSend = async () => {
     if (!input.trim() || isTyping || !isApiAvailable) return;
     
-    // Safety check for chat session
-    if (!chatSessionRef.current) {
-        setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "시스템 오류: 연결이 끊어졌습니다." }]);
-        setInput('');
-        return;
-    }
+    if (!chatSessionRef.current) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -470,73 +460,74 @@ const MonkChat = () => {
     setIsTyping(true);
 
     try {
-      // Send message using the persistent chat session
       const result = await chatSessionRef.current.sendMessage({ message: userMessage });
-      const responseText = result.text;
-      
-      if (responseText) {
-        setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+      if (result.text) {
+        setMessages(prev => [...prev, { role: 'model', text: result.text }]);
       }
     } catch (error) {
-      console.warn("Chat error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 잠시 마음의 연결이 고르지 못합니다. 다시 말씀해 주시겠습니까?" }]);
+      setMessages(prev => [...prev, { role: 'model', text: "마음의 연결이 잠시 끊어졌습니다. 다시 말씀해 주십시오." }]);
     } finally {
       setIsTyping(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-stone-50 relative fade-in">
-        {/* Header inside chat for mobile feel */}
-        <div className="p-4 bg-white border-b border-stone-100 flex items-center justify-center">
-            <h2 className="text-lg font-semibold text-stone-600">스님과의 대화</h2>
+    <div className="flex flex-col h-full bg-zen-50 relative fade-in">
+        <div className="p-4 bg-white/80 backdrop-blur-sm border-b border-zen-100 flex items-center justify-center sticky top-0 z-10">
+            <h2 className={`${text.lg} font-semibold text-zen-700`}>스님과의 대화</h2>
         </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-20">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-24">
         {messages.map((msg, index) => (
           <div
             key={index}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${
+              className={`max-w-[85%] p-5 rounded-3xl shadow-sm leading-relaxed ${text.base} ${
                 msg.role === 'user'
-                  ? 'bg-stone-700 text-white rounded-tr-none'
-                  : 'bg-white text-stone-800 border border-stone-200 rounded-tl-none'
+                  ? 'bg-zen-600 text-white rounded-br-none'
+                  : 'bg-white text-gray-700 border border-zen-100 rounded-bl-none'
               }`}
             >
-              {msg.role === 'model' && <div className="mb-1 text-amber-600 text-xs font-bold">스님</div>}
+              {msg.role === 'model' && <div className="mb-2 text-terracotta-500 text-xs font-bold uppercase tracking-wider">Monk</div>}
               {msg.text}
             </div>
           </div>
         ))}
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-white border border-stone-200 p-4 rounded-2xl rounded-tl-none shadow-sm flex gap-2 items-center">
-                <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            <div className="bg-white border border-zen-100 p-4 rounded-3xl rounded-bl-none shadow-sm flex gap-2 items-center">
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-white border-t border-stone-200">
-        <div className="flex gap-2">
-          <input
-            type="text"
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-zen-100">
+        <div className="flex gap-2 items-end">
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => {
+                if(e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            }}
+            rows={1}
             disabled={!isApiAvailable}
-            placeholder={isApiAvailable ? "마음의 고민을 털어놓으세요..." : "상담 기능을 이용할 수 없습니다."}
-            className="flex-1 p-3 rounded-full bg-stone-100 border-none focus:ring-2 focus:ring-stone-400 outline-none text-stone-700 placeholder-stone-400 disabled:opacity-50"
+            placeholder={isApiAvailable ? "고민을 적어보세요..." : "연결 불가"}
+            className={`flex-1 p-4 rounded-2xl bg-zen-50 border-none focus:ring-2 focus:ring-zen-300 outline-none text-gray-700 placeholder-gray-400 resize-none ${text.base}`}
+            style={{ minHeight: '56px', maxHeight: '120px' }}
           />
           <button
             onClick={handleSend}
             disabled={isTyping || !input.trim() || !isApiAvailable}
-            className="p-3 bg-stone-800 text-white rounded-full hover:bg-stone-700 disabled:opacity-50 transition-colors"
+            className="p-4 bg-terracotta-500 text-white rounded-2xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-colors shadow-lg"
           >
             <Send size={20} />
           </button>
@@ -549,56 +540,96 @@ const MonkChat = () => {
 // --- Main App ---
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('daily');
+  const [fontSize, setFontSize] = useState<FontSize>('normal');
+
+  const toggleFontSize = () => {
+    setFontSize(prev => {
+      if (prev === 'small') return 'normal';
+      if (prev === 'normal') return 'large';
+      return 'small';
+    });
+  };
+
+  const getFontSizeLabel = () => {
+    if (fontSize === 'small') return '작게';
+    if (fontSize === 'normal') return '보통';
+    return '크게';
+  };
 
   return (
-    // Use h-dvh for better mobile viewport support
-    <div className="max-w-md mx-auto h-dvh bg-[#fdfbf7] flex flex-col shadow-2xl overflow-hidden relative">
+    <div className="max-w-md mx-auto h-dvh bg-zen-50 flex flex-col shadow-2xl overflow-hidden relative font-sans text-gray-800">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm border-b border-stone-100 z-10 flex-shrink-0">
-        <h1 className="text-xl font-bold text-stone-800 flex items-center gap-2">
-            <span className="text-amber-600 text-2xl">☸</span> 마음의 등불
+      <header className="relative h-16 flex items-center justify-end px-6 bg-white/80 backdrop-blur-md border-b border-zen-100 z-20 flex-shrink-0">
+        <h1 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold text-zen-800 flex items-center gap-2 tracking-tight whitespace-nowrap">
+            <span className="text-terracotta-500 text-2xl">☸</span> 
+            <span className="serif-font">마음의 등불</span>
         </h1>
+        <button 
+          onClick={toggleFontSize}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zen-100 hover:bg-zen-200 transition-colors text-zen-700 text-xs font-medium relative z-10"
+        >
+          <Type size={14} />
+          <span>{getFontSizeLabel()}</span>
+        </button>
       </header>
 
       {/* Content Area */}
-      <main className="flex-1 overflow-hidden relative w-full">
-        {activeTab === 'daily' && <DailyWisdom />}
-        {activeTab === 'meditation' && <MeditationTimer />}
-        {activeTab === 'bowing' && <BowingCounter />}
-        {activeTab === 'chat' && <MonkChat />}
+      <main className="flex-1 overflow-hidden relative w-full bg-zen-50">
+        {activeTab === 'daily' && <DailyWisdom fontSize={fontSize} />}
+        {activeTab === 'meditation' && <MeditationTimer fontSize={fontSize} />}
+        {activeTab === 'bowing' && <BowingCounter fontSize={fontSize} />}
+        {activeTab === 'chat' && <MonkChat fontSize={fontSize} />}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="h-20 bg-white border-t border-stone-100 flex justify-around items-center px-2 pb-safe flex-shrink-0">
-        <button
-            onClick={() => setActiveTab('daily')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'daily' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
-        >
-            <BookOpen size={24} className={activeTab === 'daily' ? 'fill-amber-100' : ''} />
-            <span className="text-[10px] mt-1 font-medium">법구</span>
-        </button>
-        <button
-            onClick={() => setActiveTab('meditation')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'meditation' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
-        >
-            <Sparkles size={24} className={activeTab === 'meditation' ? 'fill-amber-100' : ''} />
-            <span className="text-[10px] mt-1 font-medium">명상</span>
-        </button>
-        <button
-            onClick={() => setActiveTab('bowing')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'bowing' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
-        >
-            <Activity size={24} className={activeTab === 'bowing' ? 'fill-amber-100' : ''} />
-            <span className="text-[10px] mt-1 font-medium">108배</span>
-        </button>
-        <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'chat' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
-        >
-            <MessageCircle size={24} className={activeTab === 'chat' ? 'fill-amber-100' : ''} />
-            <span className="text-[10px] mt-1 font-medium">상담</span>
-        </button>
+      <nav className="h-20 bg-white border-t border-zen-100 flex justify-around items-center px-4 pb-safe flex-shrink-0 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.05)] z-20">
+        <NavButton 
+          active={activeTab === 'daily'} 
+          onClick={() => setActiveTab('daily')} 
+          icon={<BookOpen size={24} />} 
+          label="법구" 
+        />
+        <NavButton 
+          active={activeTab === 'meditation'} 
+          onClick={() => setActiveTab('meditation')} 
+          icon={<Sparkles size={24} />} 
+          label="명상" 
+        />
+        <NavButton 
+          active={activeTab === 'bowing'} 
+          onClick={() => setActiveTab('bowing')} 
+          icon={<Activity size={24} />} 
+          label="108배" 
+        />
+        <NavButton 
+          active={activeTab === 'chat'} 
+          onClick={() => setActiveTab('chat')} 
+          icon={<MessageCircle size={24} />} 
+          label="상담" 
+        />
       </nav>
     </div>
   );
 }
+
+// Helper Sub-component for Navigation
+const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactElement; label: string }) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 ${
+        active 
+        ? 'text-zen-700 -translate-y-2' 
+        : 'text-gray-400 hover:text-zen-500'
+    }`}
+  >
+    <div className={`p-1.5 rounded-xl transition-colors ${active ? 'bg-zen-100' : 'bg-transparent'}`}>
+        {React.cloneElement(icon, { 
+            className: active ? 'fill-zen-500/20 stroke-zen-600' : 'stroke-current',
+            strokeWidth: active ? 2.5 : 2 
+        } as any)}
+    </div>
+    <span className={`text-[11px] mt-1 font-medium ${active ? 'opacity-100' : 'opacity-70'}`}>
+        {label}
+    </span>
+  </button>
+);

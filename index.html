@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>마음의 등불</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -11,9 +11,32 @@
         extend: {
           fontFamily: {
             serif: ['"Noto Serif KR"', 'serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif'],
           },
           colors: {
-            bg: '#fdfbf7',
+            // Modern Zen Palette
+            zen: {
+              50: '#F5F7F6',  // Cool White / Background
+              100: '#E6EBE9', // Light Sage
+              200: '#CBD5D1',
+              300: '#A3B8B0',
+              400: '#7D9A8F',
+              500: '#5A7D71', // Primary Sage Green
+              600: '#466359',
+              700: '#344C43',
+              800: '#253630',
+              900: '#17211D',
+            },
+            sand: {
+              50: '#FDFBF7', // Warm White
+              100: '#F7F3EB',
+              200: '#EBE2D0',
+              300: '#DBCFB6',
+              400: '#C7B594', // Gold/Sand accent
+            },
+            terracotta: {
+              500: '#D97757', // Warm accent for buttons/active states
+            }
           }
         }
       }
@@ -21,12 +44,16 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     body {
+      font-family: 'Noto Sans KR', sans-serif; /* Default to Sans for modern feel */
+      background-color: #F5F7F6;
+      color: #253630;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, .serif-font {
       font-family: 'Noto Serif KR', serif;
-      background-color: #fdfbf7; /* Warm rice paper color */
-      color: #4a4a4a;
     }
     .lotus-spin {
       animation: spin-slow 12s linear infinite;
@@ -36,7 +63,7 @@
       to { transform: rotate(360deg); }
     }
     .fade-in {
-      animation: fadeIn 0.8s ease-in-out;
+      animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
@@ -49,6 +76,10 @@
     .no-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
+    }
+    /* Button tap highlight removal for mobile */
+    button {
+      -webkit-tap-highlight-color: transparent;
     }
   </style>
 <script type="importmap">
