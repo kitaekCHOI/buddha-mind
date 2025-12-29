@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
-import { GoogleGenAI } from "@google/genai";
-import { BookOpen, Mic, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, User, Bot } from 'lucide-react';
+import { GoogleGenAI, Chat } from "@google/genai";
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity } from 'lucide-react';
 
 // Initialize Gemini API
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 // --- Types ---
-type Tab = 'daily' | 'meditation' | 'chat';
+type Tab = 'daily' | 'meditation' | 'bowing' | 'chat';
 
 interface Message {
   role: 'user' | 'model';
@@ -65,6 +64,8 @@ const MeditationTimer = () => {
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
   const intervalRef = useRef<number | null>(null);
+  // AudioContext ref to persist across renders and ensure unlocking
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -72,19 +73,32 @@ const MeditationTimer = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Initialize/Resume AudioContext on user interaction
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        audioCtxRef.current = new AudioContext();
+      }
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
   const playBellSound = () => {
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      
-      const ctx = new AudioContext();
+      if (!audioCtxRef.current) initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.connect(gain);
       gain.connect(ctx.destination);
       
-      // Bell sound simulation
+      // Bell sound simulation (Sine wave with long decay)
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
       osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
@@ -100,13 +114,20 @@ const MeditationTimer = () => {
   };
 
   const toggleTimer = () => {
+    if (!isActive) {
+      // Unlock audio on Start
+      initAudio();
+    }
     setIsActive(!isActive);
   };
 
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(duration);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -114,9 +135,13 @@ const MeditationTimer = () => {
       intervalRef.current = window.setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && isActive) {
+      // Timer finished
       setIsActive(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       playBellSound();
     }
     return () => {
@@ -204,7 +229,151 @@ const MeditationTimer = () => {
   );
 };
 
-// 3. AI Monk Counseling Component
+// 3. 108 Bows Counter Component
+const BowingCounter = () => {
+  const [count, setCount] = useState(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        audioCtxRef.current = new AudioContext();
+      }
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
+  const playMoktak = () => {
+    try {
+      if (!audioCtxRef.current) initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Simulate a wooden block sound (Moktak)
+      // Triangle wave for woodier character
+      osc.type = 'triangle';
+      
+      // Short pitch drop
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+
+      // Fast percussive envelope
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) {
+      console.error("Audio play failed", e);
+    }
+  };
+
+  const handleBow = () => {
+    if (count < 108) {
+      playMoktak();
+      setCount((prev) => prev + 1);
+    }
+  };
+
+  const reset = () => {
+    if (window.confirm('카운트를 초기화 하시겠습니까?')) {
+      setCount(0);
+    }
+  };
+
+  const progress = (count / 108) * 100;
+  const isCompleted = count === 108;
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-6 fade-in">
+      <h2 className="text-xl font-semibold text-stone-600 mb-8 tracking-widest">108배</h2>
+
+      {/* Counter Circle */}
+      <div className="relative w-64 h-64 flex items-center justify-center mb-8" onClick={handleBow}>
+         {/* Click ripple effect container (simplified) */}
+        <div className="absolute inset-0 rounded-full bg-stone-50 border-4 border-stone-100 hover:border-stone-200 transition-colors cursor-pointer active:scale-95 duration-100 shadow-sm flex items-center justify-center">
+            <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 pointer-events-none">
+            <circle
+                cx="128" // 256/2 approx, assuming container size matches but here relying on absolute positioning
+                cy="128"
+                r="120"
+                stroke="none"
+                fill="none"
+            />
+            {/* We use a simpler SVG logic here to match parent container size which is w-64 (256px) */}
+            </svg>
+            
+             {/* Progress SVG */}
+            <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 256 256">
+                <circle
+                    cx="128"
+                    cy="128"
+                    r="120"
+                    stroke="#e7e5e4"
+                    strokeWidth="8"
+                    fill="none"
+                />
+                <circle
+                    cx="128"
+                    cy="128"
+                    r="120"
+                    stroke={isCompleted ? "#16a34a" : "#d97706"}
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 120}
+                    strokeDashoffset={2 * Math.PI * 120 * (1 - progress / 100)}
+                    className="transition-all duration-300 ease-out"
+                />
+            </svg>
+
+            <div className="flex flex-col items-center z-10 select-none">
+                <span className={`text-6xl font-light ${isCompleted ? 'text-green-600' : 'text-stone-800'}`}>
+                    {count}
+                </span>
+                <span className="text-stone-400 text-lg mt-2">/ 108</span>
+            </div>
+        </div>
+      </div>
+
+      {isCompleted && (
+        <div className="mb-6 text-center animate-bounce text-stone-600">
+            <p>🙏 108배 정진을 마쳤습니다.</p>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="flex gap-6 mb-8">
+        <button 
+          onClick={handleBow}
+          disabled={isCompleted}
+          className={`px-8 py-3 rounded-full text-white font-medium shadow-lg transition-transform active:scale-95 ${isCompleted ? 'bg-gray-300' : 'bg-stone-800 hover:bg-stone-700'}`}
+        >
+          1배 올리기
+        </button>
+        <button 
+          onClick={reset}
+          className="p-3 rounded-full bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition-colors shadow-md"
+          aria-label="Reset"
+        >
+          <RotateCcw size={24} />
+        </button>
+      </div>
+      
+      <p className="text-stone-400 text-sm">원을 터치하여 절 횟수를 세어보세요.</p>
+    </div>
+  );
+};
+
+// 4. AI Monk Counseling Component
 const MonkChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: '어서 오세요. 저는 당신의 이야기를 들어줄 마음의 벗입니다. 어떤 고민이 있으신가요?' }
@@ -212,6 +381,19 @@ const MonkChat = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Use a ref to store the Chat session to persist context across renders
+  const chatSessionRef = useRef<Chat | null>(null);
+
+  useEffect(() => {
+    // Initialize chat session on component mount
+    chatSessionRef.current = ai.chats.create({
+      model: MODEL_NAME,
+      config: {
+        systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
+      },
+    });
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -222,7 +404,7 @@ const MonkChat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !chatSessionRef.current) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -230,28 +412,10 @@ const MonkChat = () => {
     setIsTyping(true);
 
     try {
-      // Construct history for context
-      // Limit context to last few turns to save tokens if needed, but for text it's usually fine
-      const history = messages.map(m => 
-        m.role === 'user' ? `User: ${m.text}` : `Model: ${m.text}`
-      ).join('\n');
+      // Send message using the persistent chat session
+      const result = await chatSessionRef.current.sendMessage({ message: userMessage });
+      const responseText = result.text;
       
-      const prompt = `${history}\nUser: ${userMessage}\nModel:`;
-
-      const response = await ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: [
-            {
-                role: 'user',
-                parts: [{ text: userMessage }]
-            }
-        ],
-        config: {
-          systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma), such as mindfulness, impermanence, compassion, and letting go. Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep. Avoid overly religious jargon if simple words suffice, but use Buddhist concepts naturally.",
-        }
-      });
-
-      const responseText = response.text;
       if (responseText) {
         setMessages(prev => [...prev, { role: 'model', text: responseText }]);
       }
@@ -328,56 +492,54 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('daily');
 
   return (
-    <div className="max-w-md mx-auto h-screen bg-[#fdfbf7] flex flex-col shadow-2xl overflow-hidden relative">
+    // Use h-dvh for better mobile viewport support
+    <div className="max-w-md mx-auto h-dvh bg-[#fdfbf7] flex flex-col shadow-2xl overflow-hidden relative">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm border-b border-stone-100 z-10">
+      <header className="h-16 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm border-b border-stone-100 z-10 flex-shrink-0">
         <h1 className="text-xl font-bold text-stone-800 flex items-center gap-2">
             <span className="text-amber-600 text-2xl">☸</span> 마음의 등불
         </h1>
       </header>
 
       {/* Content Area */}
-      <main className="flex-1 overflow-hidden relative">
+      <main className="flex-1 overflow-hidden relative w-full">
         {activeTab === 'daily' && <DailyWisdom />}
         {activeTab === 'meditation' && <MeditationTimer />}
+        {activeTab === 'bowing' && <BowingCounter />}
         {activeTab === 'chat' && <MonkChat />}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="h-20 bg-white border-t border-stone-100 flex justify-around items-center px-2 pb-2">
+      <nav className="h-20 bg-white border-t border-stone-100 flex justify-around items-center px-2 pb-safe flex-shrink-0">
         <button
             onClick={() => setActiveTab('daily')}
-            className={`flex flex-col items-center p-3 transition-colors ${activeTab === 'daily' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'daily' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
         >
             <BookOpen size={24} className={activeTab === 'daily' ? 'fill-amber-100' : ''} />
-            <span className="text-xs mt-1 font-medium">오늘의 말씀</span>
+            <span className="text-[10px] mt-1 font-medium">법구</span>
         </button>
         <button
             onClick={() => setActiveTab('meditation')}
-            className={`flex flex-col items-center p-3 transition-colors ${activeTab === 'meditation' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'meditation' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
         >
             <Sparkles size={24} className={activeTab === 'meditation' ? 'fill-amber-100' : ''} />
-            <span className="text-xs mt-1 font-medium">명상</span>
+            <span className="text-[10px] mt-1 font-medium">명상</span>
+        </button>
+        <button
+            onClick={() => setActiveTab('bowing')}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'bowing' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+        >
+            <Activity size={24} className={activeTab === 'bowing' ? 'fill-amber-100' : ''} />
+            <span className="text-[10px] mt-1 font-medium">108배</span>
         </button>
         <button
             onClick={() => setActiveTab('chat')}
-            className={`flex flex-col items-center p-3 transition-colors ${activeTab === 'chat' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'chat' ? 'text-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
         >
             <MessageCircle size={24} className={activeTab === 'chat' ? 'fill-amber-100' : ''} />
-            <span className="text-xs mt-1 font-medium">상담소</span>
+            <span className="text-[10px] mt-1 font-medium">상담</span>
         </button>
       </nav>
     </div>
-  );
-}
-
-// Mounting Logic
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  const root = createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
   );
 }
