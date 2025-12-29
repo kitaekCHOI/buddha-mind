@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key, Volume2, Loader2, Mic, MicOff } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
+const TTS_MODEL_NAME = 'gemini-2.5-flash-preview-tts';
 
 // Helper to safely get AI instance
 const getAIClient = () => {
@@ -15,6 +16,36 @@ const getAIClient = () => {
     return null;
   }
 };
+
+// --- Audio Helpers for TTS ---
+function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
 
 // --- Data: Buddhist Scriptures ---
 const SCRIPTURES = [
@@ -602,8 +633,11 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
   const [needsKey, setNeedsKey] = useState(false);
   const [canSelectKey, setCanSelectKey] = useState(false);
+  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
+  const recognitionRef = useRef<any>(null);
   const text = getTextClasses(fontSize);
 
   useEffect(() => {
@@ -620,6 +654,31 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
       setNeedsKey(true);
       setMessages(prev => [...prev, { role: 'model', text: "상담 기능을 이용하려면 시스템 연결이 필요합니다." }]);
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+        recognition.continuous = false; // Simple dictation mode
+        recognition.interimResults = false;
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
+        };
+        recognitionRef.current = recognition;
+      }
+    }
+    return () => {
+        if (recognitionRef.current && isListening) {
+            recognitionRef.current.stop();
+        }
+    };
   }, []);
 
   const initChat = (ai: GoogleGenAI) => {
@@ -659,6 +718,63 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
         }
     } catch (e) {
         console.error("Key selection failed", e);
+    }
+  };
+
+  const handleSpeak = async (textToSpeak: string, index: number) => {
+    if (playingId === index) return;
+    setPlayingId(index);
+
+    try {
+      const ai = getAIClient();
+      if (!ai) return;
+
+      const response = await ai.models.generateContent({
+        model: TTS_MODEL_NAME,
+        contents: [{ parts: [{ text: textToSpeak }] }],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Charon' }, // 'Charon' for a deeper, monk-like voice
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioContext({ sampleRate: 24000 });
+        const audioBuffer = await decodeAudioData(
+          decode(base64Audio),
+          ctx,
+          24000,
+          1
+        );
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        source.onended = () => setPlayingId(null);
+        source.start();
+      } else {
+        setPlayingId(null);
+      }
+    } catch (e) {
+      console.error("TTS failed", e);
+      setPlayingId(null);
+    }
+  };
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+        alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+        return;
+    }
+    if (isListening) {
+        recognitionRef.current.stop();
+    } else {
+        recognitionRef.current.start();
     }
   };
 
@@ -724,7 +840,19 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
                   : 'bg-white text-gray-700 border border-zen-100 rounded-bl-none'
               }`}
             >
-              {msg.role === 'model' && <div className="mb-2 text-terracotta-500 text-xs font-bold uppercase tracking-wider">Monk</div>}
+              {msg.role === 'model' && (
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-terracotta-500 text-xs font-bold uppercase tracking-wider">Monk</div>
+                    <button 
+                        onClick={() => handleSpeak(msg.text, index)}
+                        disabled={playingId !== null}
+                        className="text-zen-400 hover:text-zen-600 transition-colors p-1"
+                        title="스님 목소리로 듣기"
+                    >
+                        {playingId === index ? <Loader2 className="animate-spin" size={14}/> : <Volume2 size={14} />}
+                    </button>
+                  </div>
+              )}
               {msg.text}
             </div>
           </div>
@@ -778,10 +906,20 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             }}
             rows={1}
             disabled={!isApiAvailable}
-            placeholder={isApiAvailable ? "고민을 적어보세요..." : "연결 필요"}
-            className={`flex-1 p-4 rounded-2xl bg-zen-50 border-none focus:ring-2 focus:ring-zen-300 outline-none text-gray-700 placeholder-gray-400 resize-none ${text.base}`}
+            placeholder={isListening ? "말씀하세요..." : (isApiAvailable ? "고민을 적어보세요..." : "연결 필요")}
+            className={`flex-1 p-4 rounded-2xl bg-zen-50 border-none focus:ring-2 focus:ring-zen-300 outline-none text-gray-700 placeholder-gray-400 resize-none ${text.base} ${isListening ? 'ring-2 ring-red-300 bg-red-50' : ''}`}
             style={{ minHeight: '56px', maxHeight: '120px' }}
           />
+          <button
+            onClick={toggleListening}
+            className={`p-4 rounded-2xl transition-all shadow-lg flex items-center justify-center ${
+                isListening
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+          </button>
           <button
             onClick={handleSend}
             disabled={isTyping || !input.trim() || !isApiAvailable}
@@ -818,9 +956,11 @@ export default function App() {
     <div className="max-w-md mx-auto h-dvh bg-zen-50 flex flex-col shadow-2xl overflow-hidden relative font-sans text-gray-800">
       {/* Header */}
       <header className="relative h-16 flex items-center justify-end px-6 bg-white/80 backdrop-blur-md border-b border-zen-100 z-20 flex-shrink-0">
-        <h1 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold text-zen-800 flex items-center gap-2 tracking-tight whitespace-nowrap">
-            <span className="text-terracotta-500 text-2xl">☸</span> 
-            <span className="serif-font">마음의 등불</span>
+        <h1 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold text-zen-800 tracking-tight whitespace-nowrap">
+            <a href="index.html" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <span className="text-terracotta-500 text-2xl">☸</span> 
+                <span className="serif-font">마음의 등불</span>
+            </a>
         </h1>
         <button 
           onClick={toggleFontSize}
