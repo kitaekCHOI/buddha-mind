@@ -187,7 +187,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 2. Meditation Timer Component (Unchanged from prev)
+// 2. Meditation Timer Component (Unchanged)
 const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   const [duration, setDuration] = useState<number>(5 * 60); 
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
@@ -598,18 +598,24 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
   const [needsKey, setNeedsKey] = useState(false);
+  const [canSelectKey, setCanSelectKey] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const text = getTextClasses(fontSize);
 
   useEffect(() => {
+    // Check if window.aistudio is available for manual key selection
+    if (typeof window !== 'undefined' && (window as any).aistudio) {
+      setCanSelectKey(true);
+    }
+
     const ai = getAIClient();
     if (ai) {
       initChat(ai);
     } else {
       setIsApiAvailable(false);
       setNeedsKey(true);
-      setMessages(prev => [...prev, { role: 'model', text: "상담을 시작하려면 API 키 연결이 필요합니다." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "상담 기능을 이용하려면 시스템 연결이 필요합니다." }]);
     }
   }, []);
 
@@ -625,6 +631,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
         setNeedsKey(false);
     } catch(e) {
         setIsApiAvailable(false);
+        setNeedsKey(true);
     }
   };
 
@@ -639,13 +646,13 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
                 initChat(ai);
                 setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
             } else {
-                // If it fails immediately, force state to allow input if we trust injection happened
-                setIsApiAvailable(true);
-                setNeedsKey(false);
-                setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
+                 // Optimistic retry
+                 setIsApiAvailable(true);
+                 setNeedsKey(false);
+                 setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
             }
         } else {
-            alert("API 키 연결 기능을 사용할 수 없는 환경입니다.");
+            alert("이 환경에서는 API 키 연결 기능을 지원하지 않습니다. 관리자에게 문의하세요.");
         }
     } catch (e) {
         console.error("Key selection failed", e);
@@ -663,7 +670,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
     
-    // If not officially available but we want to try (maybe key injected late)
+    // Lazy init check
     let session = chatSessionRef.current;
     if (!session && isApiAvailable) {
         const ai = getAIClient();
@@ -673,7 +680,10 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
         }
     }
 
-    if (!session) return;
+    if (!session) {
+         setMessages(prev => [...prev, { role: 'model', text: "시스템에 연결되지 않았습니다." }]);
+         return;
+    }
 
     const userMessage = input.trim();
     setInput('');
@@ -686,7 +696,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
         setMessages(prev => [...prev, { role: 'model', text: result.text }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', text: "마음의 연결이 잠시 끊어졌습니다. 다시 말씀해 주십시오." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 마음의 연결이 잠시 끊어졌습니다." }]);
     } finally {
       setIsTyping(false);
     }
@@ -716,17 +726,30 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             </div>
           </div>
         ))}
+        
         {needsKey && (
-            <div className="flex justify-center mt-4">
-                <button 
-                    onClick={handleKeySelect}
-                    className="flex items-center gap-2 px-6 py-3 bg-terracotta-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all active:scale-95"
-                >
-                    <Key size={18} />
-                    <span>API 키 연결하기</span>
-                </button>
+            <div className="flex flex-col items-center justify-center mt-6 p-6 mx-4 bg-white rounded-3xl border border-zen-100 shadow-sm text-center">
+                <p className={`${text.base} text-gray-500 mb-4`}>
+                    {canSelectKey 
+                        ? "원활한 상담을 위해 API 키 연결이 필요합니다." 
+                        : "시스템 설정(API KEY)이 필요하여 상담을 진행할 수 없습니다."}
+                </p>
+                {canSelectKey ? (
+                    <button 
+                        onClick={handleKeySelect}
+                        className="flex items-center gap-2 px-6 py-3 bg-terracotta-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all active:scale-95 font-medium"
+                    >
+                        <Key size={18} />
+                        <span>API 키 연결하기</span>
+                    </button>
+                ) : (
+                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400 break-all">
+                        관리자 설정: 환경 변수 [API_KEY]를 확인해주세요.
+                    </div>
+                )}
             </div>
         )}
+
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-white border border-zen-100 p-4 rounded-3xl rounded-bl-none shadow-sm flex gap-2 items-center">
