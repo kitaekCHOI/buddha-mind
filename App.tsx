@@ -211,7 +211,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
 
       {/* Date and Time Display - Moved Outside Below */}
       <div className="flex flex-col items-center mt-16 space-y-2">
-           <span className={`${text['2xl']} text-gray-400 font-serif`}>{formatDate(now)}</span>
+           <span className={`${text['2xl']} text-black font-serif`}>{formatDate(now)}</span>
            <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
       </div>
     </div>
@@ -591,7 +591,7 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   }
 
   return (
-    <div className="flex flex-col h-full p-4 fade-in overflow-y-auto">
+    <div className="flex flex-col h-full p-4 fade-in overflow-y-auto no-scrollbar">
       <div className="flex flex-col items-center mb-4">
         <div className="w-12 h-12 bg-zen-100 rounded-full flex items-center justify-center mb-2 text-zen-600">
            <BookText size={24} />
