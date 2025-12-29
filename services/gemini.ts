@@ -2,9 +2,13 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { ChatMessage } from '../types';
 
 // Initialize the API client
-// Ensure we don't crash if API_KEY is missing in dev environment
-const apiKey = process.env.API_KEY || 'dummy-key';
-const ai = new GoogleGenAI({ apiKey });
+const apiKey = process.env.API_KEY || '';
+
+if (!apiKey) {
+  console.warn("Gemini API Key is missing. Chat and quotes will use fallback responses.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy' });
 
 const SYSTEM_INSTRUCTION = `
 당신은 지혜롭고 자비로운 불교 스님(법사)입니다. 
@@ -26,6 +30,12 @@ export const createMonkChat = (): Chat => {
 };
 
 export const sendMessageToMonk = async (chat: Chat, message: string): Promise<string> => {
+  if (!apiKey) {
+    // Simulate network delay for better UX even without API key
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return "현재 마음의 연결(API Key)이 원활하지 않습니다. 설정에서 API 키를 확인해주세요.";
+  }
+
   try {
     const result: GenerateContentResponse = await chat.sendMessage({ message });
     return result.text || "죄송합니다. 마음의 소리를 듣지 못했습니다. 다시 말씀해 주시겠습니까?";
@@ -36,6 +46,10 @@ export const sendMessageToMonk = async (chat: Chat, message: string): Promise<st
 };
 
 export const generateDailyQuote = async (): Promise<string> => {
+  if (!apiKey) {
+    return '"마음이 모든 것이다. 당신이 생각하는 대로 된다." - 붓다';
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',

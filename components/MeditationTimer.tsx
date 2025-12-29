@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
-import { playBellSound } from '../services/audio';
+import { Play, Pause, RotateCcw, Volume2, Volume1, VolumeX } from 'lucide-react';
+import { playBellSound, setMasterVolume } from '../services/audio';
 
 const PRESETS = [5, 10, 15, 30];
 
@@ -9,6 +9,7 @@ const MeditationTimer: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(10 * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
   const [sessionCount, setSessionCount] = useState<number>(0);
+  const [volume, setVolume] = useState<number>(50);
 
   // Use ref to keep track of interval ID for cleanup
   const timerRef = useRef<number | null>(null);
@@ -40,6 +41,18 @@ const MeditationTimer: React.FC = () => {
     setDuration(min);
     setIsActive(false);
     setTimeLeft(min * 60);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = Number(e.target.value);
+    setVolume(newVolume);
+    setMasterVolume(newVolume / 100);
+  };
+
+  const getVolumeIcon = () => {
+    if (volume === 0) return <VolumeX size={20} className="text-stone-400" />;
+    if (volume < 50) return <Volume1 size={20} className="text-stone-400" />;
+    return <Volume2 size={20} className="text-stone-400" />;
   };
 
   useEffect(() => {
@@ -75,7 +88,7 @@ const MeditationTimer: React.FC = () => {
       </div>
 
       {/* Timer Visual */}
-      <div className="relative w-64 h-64 mb-10 flex items-center justify-center">
+      <div className="relative w-64 h-64 mb-8 flex items-center justify-center">
         {/* Background Circle */}
         <svg className="w-full h-full transform -rotate-90">
           <circle
@@ -108,7 +121,7 @@ const MeditationTimer: React.FC = () => {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center space-x-6 mb-10">
+      <div className="flex items-center space-x-6 mb-8">
         <button 
           onClick={resetTimer}
           className="p-4 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors"
@@ -129,6 +142,7 @@ const MeditationTimer: React.FC = () => {
           {isActive ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
         </button>
 
+        {/* Volume Control Button (triggers sound test only) */}
         <button 
           onClick={playBellSound}
           className="p-4 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors"
@@ -136,6 +150,31 @@ const MeditationTimer: React.FC = () => {
         >
           <Volume2 size={24} />
         </button>
+      </div>
+
+      {/* Volume Slider */}
+      <div className="w-full max-w-xs px-8 mb-10">
+        <div className="flex items-center space-x-3 bg-stone-50 p-3 rounded-xl border border-stone-100">
+          <button 
+            onClick={() => {
+              const newVol = volume === 0 ? 50 : 0;
+              setVolume(newVol);
+              setMasterVolume(newVol / 100);
+            }}
+            className="focus:outline-none"
+          >
+            {getVolumeIcon()}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-monk-500 hover:accent-monk-600 focus:outline-none focus:ring-2 focus:ring-monk-500/20"
+            aria-label="Volume"
+          />
+        </div>
       </div>
 
       {/* Presets */}

@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;500;700&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
     <script>
-      // Polyfill process for browser environment
+      // Polyfill process for browser environment to prevent crashes in libraries expecting Node.js env
       if (typeof process === 'undefined') {
         window.process = { env: { API_KEY: '' } };
       }
@@ -36,6 +36,15 @@
                 500: '#d97706', // Amber-ish
                 700: '#92400e', // Deep amber
               }
+            },
+            animation: {
+              'fade-in': 'fadeIn 1s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
             }
           }
         }
@@ -54,22 +63,27 @@
         border-radius: 3px;
       }
     </style>
+    <!-- 
+      CRITICAL FIX: 
+      Use 'deps=react@18.2.0,react-dom@18.2.0' for external libraries.
+      This forces esm.sh to use the EXACT same React instance defined in 'imports',
+      preventing the "Minified React error #31" caused by duplicate React instances.
+    -->
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react/": "https://esm.sh/react@18.2.0/",
-        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.378.0?external=react,react-dom",
-        "@google/genai": "https://esm.sh/@google/genai@0.2.1",
-        "react-router-dom": "https://esm.sh/react-router-dom@6.23.1?external=react,react-dom",
-        "@remix-run/router": "https://esm.sh/@remix-run/router@1.16.1"
-      }
-    }
-    </script>
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.23.1?deps=react@18.2.0,react-dom@18.2.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.378.0?deps=react@18.2.0,react-dom@18.2.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.2.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
   </head>
   <body>
     <div id="root"></div>

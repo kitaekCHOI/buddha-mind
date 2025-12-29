@@ -2,13 +2,42 @@
 // This avoids external dependencies or asset loading issues.
 
 let audioContext: AudioContext | null = null;
+let masterGainNode: GainNode | null = null;
 
-export const playBellSound = () => {
+const initAudio = () => {
   if (!audioContext) {
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    masterGainNode = audioContext.createGain();
+    // Default volume 0.5
+    masterGainNode.gain.value = 0.5; 
+    masterGainNode.connect(audioContext.destination);
+  }
+  return { ctx: audioContext, masterGain: masterGainNode as GainNode };
+};
+
+export const setMasterVolume = (volume: number) => {
+  // Volume should be between 0.0 and 1.0
+  const { ctx, masterGain } = initAudio();
+  
+  // Resume context if suspended (browser autoplay policy)
+  if (ctx.state === 'suspended') {
+    ctx.resume();
   }
 
-  const ctx = audioContext;
+  // Smooth transition to avoid clicking artifacts
+  masterGain.gain.cancelScheduledValues(ctx.currentTime);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, volume)), ctx.currentTime + 0.1);
+};
+
+export const playBellSound = () => {
+  const { ctx, masterGain } = initAudio();
+
+  // Ensure context is running
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+
   const t = ctx.currentTime;
 
   // Fundamental frequency
@@ -25,7 +54,8 @@ export const playBellSound = () => {
   osc3.type = 'triangle';
   osc3.frequency.setValueAtTime(890, t); 
 
-  // Gain (Volume envelope)
+  // Gain (Volume envelope) - These determine the "shape" of the sound, 
+  // not the master volume.
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0, t);
   gain.gain.linearRampToValueAtTime(0.6, t + 0.05); // Attack
@@ -41,14 +71,15 @@ export const playBellSound = () => {
   gain3.gain.linearRampToValueAtTime(0.1, t + 0.05);
   gain3.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
 
-  // Connect
+  // Connect Oscillators to their Envelopes
   osc.connect(gain);
   osc2.connect(gain2);
   osc3.connect(gain3);
 
-  gain.connect(ctx.destination);
-  gain2.connect(ctx.destination);
-  gain3.connect(ctx.destination);
+  // Connect Envelopes to Master Gain (instead of destination directly)
+  gain.connect(masterGain);
+  gain2.connect(masterGain);
+  gain3.connect(masterGain);
 
   // Start
   osc.start(t);
