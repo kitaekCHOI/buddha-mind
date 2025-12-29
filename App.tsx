@@ -23,14 +23,19 @@ const getAIClient = () => {
 // --- Data: Buddhist Scriptures ---
 const SCRIPTURES = [
   {
-    id: 'heart',
-    title: '반야심경',
-    content: `마하반야바라밀다심경\n\n관자재보살 행심반야바라밀다시 조견오온개공 도일체고액\n사리자 색불이공 공불이색 색즉시공 공즉시색 수상행식 역부여시\n사리자 시제법공상 불생불멸 불구부정 부증불감\n시고 공중무색 무수상행식 무안이비설신의 무색성향미촉법\n무안계 내지 무의식계 무무명 역무무명진 내지 무노사 역무노사진\n무고집멸도 무지 역무득 이무소득고\n보리살타 의반야바라밀다고 심무가애 무가애고 무유공포 원리전도몽상 구경열반\n삼세제불 의반야바라밀다고 득아뇩다라삼먁삼보리\n고지 반야바라밀다 시대신주 시대명주 시무상주 시무등등주\n능제일체고 진실불허 고설반야바라밀다주 즉설주왈\n\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하`
+    id: 'cheonsu',
+    title: '천수경 (개경)',
+    content: `정구업진언\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n\n오방내외안위제신진언\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n\n개경게\n무상심심미묘법 백천만겁난조우\n아금문견득수지 원해여래진실의\n\n개법장진언\n옴 아라남 아라다\n옴 아라남 아라다\n옴 아라남 아라다\n\n천수천안 관자재보살 광대원만 무애대비심 대다라니 계청\n계수관음대비주 원력홍심상호신\n천비장엄보호지 천안광명변관조\n진실어중선밀어 무위심내기비심\n속령만족제희구 영사멸제제죄업\n천룡중성동자호 백천삼매돈훈수\n수지신시광명당 수지심시신통장\n세척진노원제해 초증보리방편문\n아금칭송서귀의 소원종심실원만\n\n나무대비관세음 원아속지일체법\n나무대비관세음 원아조득지혜안\n나무대비관세음 원아속도일체중\n나무대비관세음 원아조득선방편\n나무대비관세음 원아속승반야선\n나무대비관세음 원아조득월고해\n나무대비관세음 원아속득계정도\n나무대비관세음 원아조등원적산\n나무대비관세음 원아속회무위사\n나무대비관세음 원아조동법성신\n\n아약향도산 도산자최절\n아약향화탕 화탕자소멸\n아약향지옥 지옥자고갈\n아약향아귀 아귀자포만\n아약향수라 악심자조복\n아약향축생 자득대지혜\n\n(이하 신묘장구대다라니로 이어짐)`
   },
   {
     id: 'dharani',
     title: '신묘장구대다라니',
     content: `나모라 다나다라 야야 나막알약 바로기제 새바라야\n모지사다바야 마하사다바야 마하가로 니가야\n옴 살바 바예수 다라나 가라야 다사명 나막까리다바\n이맘알야 바로기제 새바라 다바 니라간타 나막하리나야\n마발다 이사미 살발타 사다남 수반 아예염\n살바다나 바바말아 미수다감 다냐타\n옴 아로계 아로가 마지로가 지가란제 혜혜하례\n마하모지 사다바 사마라 사마라 하리나야\n구로구로 갈마 사다야 사다야 도로도로 미연제\n마하미연제 다라다라 다린나례 새바라 자라자라\n마라 미마라 아마라 몰제 예혜혜\n로계 새바라 라아 미사미 나사야 나베 사미사미\n나사야 모하자라 미사미 나사야 호로호로 마라호로\n하례 바나마 나바 사라사라 시리시리 소로소로\n못자못자 모다야 모다야 매다리야 니라간타\n가마사 날사남 바라 하라나야 마낙 사바하\n싯다야 사바하 마하싯다야 사바하\n싯다유예 새바라야 사바하 니라간타야 사바하\n바라하 목카싱하 목카야 사바하 바나마 하따야 사바하\n자가라 욕다야 사바하 상카섭나녜 모다나야 사바하\n마하라 구타다라야 사바하 바마사간타 이사시체다\n가릿나 이나야 사바하 먀가라 잘마이바 사나야 사바하\n\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하\n나모라 다나다라 야야 나막알약 바로기제 새바라야 사바하`
+  },
+  {
+    id: 'heart',
+    title: '반야심경',
+    content: `마하반야바라밀다심경\n\n관자재보살 행심반야바라밀다시 조견오온개공 도일체고액\n사리자 색불이공 공불이색 색즉시공 공즉시색 수상행식 역부여시\n사리자 시제법공상 불생불멸 불구부정 부증불감\n시고 공중무색 무수상행식 무안이비설신의 무색성향미촉법\n무안계 내지 무의식계 무무명 역무무명진 내지 무노사 역무노사진\n무고집멸도 무지 역무득 이무소득고\n보리살타 의반야바라밀다고 심무가애 무가애고 무유공포 원리전도몽상 구경열반\n삼세제불 의반야바라밀다고 득아뇩다라삼먁삼보리\n고지 반야바라밀다 시대신주 시대명주 시무상주 시무등등주\n능제일체고 진실불허 고설반야바라밀다주 즉설주왈\n\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하\n아제아제 바라아제 바라승아제 모지 사바하`
   },
   {
     id: 'beopseong',
@@ -41,11 +46,6 @@ const SCRIPTURES = [
     id: 'diamond',
     title: '금강경 (제1분)',
     content: `제1분 법회인유분\n\n이와 같이 내가 들었다.\n어느 때 부처님께서 사위국 기수급고독원에서 큰 비구들 천이백오십 인과 함께 계시었다.\n그 때 세존께서는 식사 때가 되어 가사를 입으시고 발우를 가지시고 사위성에 들어가시어 차례로 밥을 비시었다.\n본래의 처소로 돌아와 진지를 잡수시고 가사와 발우를 거두시고 발을 씻으신 뒤 자리를 펴고 앉으셨다.\n\n제2분 선현기청분\n\n그 때 장로 수보리가 대중 가운데 있다가 곧 자리에서 일어나 옷깃을 바로 하고 오른쪽 무릎을 땅에 꿇으며 합장하고 부처님께 공경히 여쭈었다.\n"희유하십니다, 세존이시여.\n여래께서는 모든 보살들을 잘 호념하시고 모든 보살들에게 잘 부촉하십니다.\n세존이시여, 선남자 선여인이 아뇩다라삼먁삼보리심을 발하고는 마땅히 어떻게 머물며 어떻게 그 마음을 항복받아야 합니까?"\n부처님께서 말씀하시었다.\n"훌륭하고 훌륭하다, 수보리여.\n그대 말과 같이 여래는 모든 보살을 잘 호념하고 모든 보살에게 잘 부촉하느니라.\n너는 이제 자세히 들으라. 마땅히 너를 위하여 설하리라.\n선남자 선여인이 아뇩다라삼먁삼보리심을 발하고는 마땅히 이와 같이 머물며 이와 같이 그 마음을 항복받을지니라."\n"예, 그렇습니다. 세존이시여. 즐거이 듣고자 하나이다."\n\n(이하 생략)`
-  },
-  {
-    id: 'cheonsu',
-    title: '천수경 (개경)',
-    content: `정구업진언\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n수리수리 마하수리 수수리 사바하\n\n오방내외안위제신진언\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n나무 사만다 못다남 옴 도로도로 지미 사바하\n\n개경게\n무상심심미묘법 백천만겁난조우\n아금문견득수지 원해여래진실의\n\n개법장진언\n옴 아라남 아라다\n옴 아라남 아라다\n옴 아라남 아라다\n\n천수천안 관자재보살 광대원만 무애대비심 대다라니 계청\n계수관음대비주 원력홍심상호신\n천비장엄보호지 천안광명변관조\n진실어중선밀어 무위심내기비심\n속령만족제희구 영사멸제제죄업\n천룡중성동자호 백천삼매돈훈수\n수지신시광명당 수지심시신통장\n세척진노원제해 초증보리방편문\n아금칭송서귀의 소원종심실원만\n\n나무대비관세음 원아속지일체법\n나무대비관세음 원아조득지혜안\n나무대비관세음 원아속도일체중\n나무대비관세음 원아조득선방편\n나무대비관세음 원아속승반야선\n나무대비관세음 원아조득월고해\n나무대비관세음 원아속득계정도\n나무대비관세음 원아조등원적산\n나무대비관세음 원아속회무위사\n나무대비관세음 원아조동법성신\n\n아약향도산 도산자최절\n아약향화탕 화탕자소멸\n아약향지옥 지옥자고갈\n아약향아귀 아귀자포만\n아약향수라 악심자조복\n아약향축생 자득대지혜\n\n(이하 신묘장구대다라니로 이어짐)`
   }
 ];
 
@@ -542,21 +542,21 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
 
   // List View
   return (
-    <div className="flex flex-col h-full p-6 fade-in overflow-y-auto">
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-16 h-16 bg-zen-100 rounded-full flex items-center justify-center mb-4 text-zen-600">
-           <BookText size={32} />
+    <div className="flex flex-col h-full p-4 fade-in overflow-y-auto">
+      <div className="flex flex-col items-center mb-4">
+        <div className="w-12 h-12 bg-zen-100 rounded-full flex items-center justify-center mb-2 text-zen-600">
+           <BookText size={24} />
         </div>
         <h2 className={`${text.xl} font-semibold text-zen-600 tracking-widest serif-font`}>불경 공부</h2>
-        <p className={`${text.sm} text-gray-400 mt-2`}>마음을 맑게 하는 경전</p>
+        <p className={`${text.sm} text-gray-400 mt-1`}>마음을 맑게 하는 경전</p>
       </div>
 
-      <div className="grid gap-4 max-w-sm mx-auto w-full pb-20">
+      <div className="grid gap-3 max-w-sm mx-auto w-full pb-20">
         {SCRIPTURES.map((item) => (
           <button
             key={item.id}
             onClick={() => setSelectedScriptureId(item.id)}
-            className="flex items-center p-5 bg-white rounded-2xl shadow-sm border border-zen-100 hover:border-zen-300 hover:shadow-md transition-all text-left group"
+            className="flex items-center p-4 bg-white rounded-2xl shadow-sm border border-zen-100 hover:border-zen-300 hover:shadow-md transition-all text-left group"
           >
             <div className="w-10 h-10 rounded-full bg-zen-50 text-zen-500 flex items-center justify-center mr-4 group-hover:bg-zen-500 group-hover:text-white transition-colors">
               <BookOpen size={20} />
@@ -738,8 +738,8 @@ export default function App() {
       <main className="flex-1 overflow-hidden relative w-full bg-zen-50">
         {activeTab === 'daily' && <DailyWisdom fontSize={fontSize} />}
         {activeTab === 'meditation' && <MeditationTimer fontSize={fontSize} />}
-        {activeTab === 'bowing' && <BowingCounter fontSize={fontSize} />}
         {activeTab === 'scripture' && <ScriptureReader fontSize={fontSize} />}
+        {activeTab === 'bowing' && <BowingCounter fontSize={fontSize} />}
         {activeTab === 'chat' && <MonkChat fontSize={fontSize} />}
       </main>
 
@@ -758,16 +758,16 @@ export default function App() {
           label="명상" 
         />
         <NavButton 
-          active={activeTab === 'bowing'} 
-          onClick={() => setActiveTab('bowing')} 
-          icon={<Activity size={24} />} 
-          label="108배" 
-        />
-        <NavButton 
           active={activeTab === 'scripture'} 
           onClick={() => setActiveTab('scripture')} 
           icon={<BookText size={24} />} 
           label="불경" 
+        />
+        <NavButton 
+          active={activeTab === 'bowing'} 
+          onClick={() => setActiveTab('bowing')} 
+          icon={<Activity size={24} />} 
+          label="108배" 
         />
         <NavButton 
           active={activeTab === 'chat'} 
