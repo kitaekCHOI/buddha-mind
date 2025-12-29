@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key, Volume2, Loader2, Mic, MicOff } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key, Volume2, Loader2, Mic, MicOff, Music } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -209,7 +209,6 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
         )}
       </div>
 
-      {/* Date and Time Display - Moved Outside Below */}
       <div className="flex flex-col items-center mt-16 space-y-2">
            <span className={`${text['2xl']} text-black font-serif`}>{formatDate(now)}</span>
            <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
@@ -218,13 +217,17 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 2. Meditation Timer Component (Unchanged)
+// 2. Meditation Timer Component
 const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   const [duration, setDuration] = useState<number>(5 * 60); 
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
+  const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(true);
+  
   const intervalRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const backgroundAudioRef = useRef<{ nodes: AudioNode[], gain: GainNode } | null>(null);
+  
   const text = getTextClasses(fontSize);
 
   const formatTime = (seconds: number) => {
@@ -243,6 +246,71 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
     if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume();
     }
+  };
+
+  const startBackgroundMusic = () => {
+      if (!isMusicEnabled) return;
+      if (backgroundAudioRef.current) return; // Already playing
+      if (!audioCtxRef.current) initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, ctx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 3); // Soft fade in to low volume
+      masterGain.connect(ctx.destination);
+
+      const nodes: AudioNode[] = [];
+
+      // Frequencies for a soothing D Major feel (Drone)
+      // D3 (146.83), A3 (220.00), D4 (293.66)
+      const freqs = [146.83, 220.00, 293.66];
+      
+      freqs.forEach(f => {
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = f;
+          
+          // Add slight random detune for warmth and natural feel
+          osc.detune.value = Math.random() * 8 - 4;
+          
+          const oscGain = ctx.createGain();
+          oscGain.gain.value = 0.25; // Individual osc volume scaling
+          
+          osc.connect(oscGain);
+          oscGain.connect(masterGain);
+          osc.start();
+          nodes.push(osc);
+          nodes.push(oscGain);
+      });
+
+      backgroundAudioRef.current = { nodes, gain: masterGain };
+  };
+
+  const stopBackgroundMusic = () => {
+       if (backgroundAudioRef.current && audioCtxRef.current) {
+           const { nodes, gain } = backgroundAudioRef.current;
+           const ctx = audioCtxRef.current;
+           
+           // Fade out
+           try {
+              gain.gain.cancelScheduledValues(ctx.currentTime);
+              gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+              gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.5);
+              
+              setTimeout(() => {
+                  nodes.forEach(node => {
+                      if (node instanceof OscillatorNode) {
+                          try { node.stop(); } catch(e){}
+                      }
+                      node.disconnect();
+                  });
+                  gain.disconnect();
+              }, 1600);
+           } catch (e) {}
+           
+           backgroundAudioRef.current = null;
+       }
   };
 
   const playBellSound = () => {
@@ -285,6 +353,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
     }
   };
 
+  // Timer Interval Effect
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       intervalRef.current = window.setInterval(() => {
@@ -302,6 +371,18 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isActive, timeLeft]);
+
+  // Background Music Effect
+  useEffect(() => {
+      if (isActive && isMusicEnabled) {
+          startBackgroundMusic();
+      } else {
+          stopBackgroundMusic();
+      }
+      return () => {
+          stopBackgroundMusic();
+      }
+  }, [isActive, isMusicEnabled]);
 
   const handleDurationChange = (newDuration: number) => {
     setDuration(newDuration);
@@ -333,7 +414,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
         </div>
       </div>
 
-      <div className="flex gap-6 mb-10">
+      <div className="flex items-center gap-6 mb-10">
         <button 
           onClick={toggleTimer}
           className="w-16 h-16 rounded-full bg-zen-500 text-white hover:bg-zen-600 transition-all shadow-lg hover:shadow-zen-200 flex items-center justify-center"
@@ -345,6 +426,13 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
           className="w-16 h-16 rounded-full bg-white text-zen-500 border border-zen-200 hover:bg-zen-50 transition-colors shadow-md flex items-center justify-center"
         >
           <RotateCcw size={28} />
+        </button>
+        <button 
+          onClick={() => setIsMusicEnabled(!isMusicEnabled)}
+          className={`w-12 h-12 rounded-full border transition-all shadow-sm flex items-center justify-center ${isMusicEnabled ? 'bg-zen-100 text-zen-600 border-zen-200' : 'bg-white text-gray-300 border-gray-100'}`}
+          title="배경 음악 토글"
+        >
+          <Music size={20} />
         </button>
       </div>
 
@@ -367,7 +455,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 3. 108 Bows Counter Component (Unchanged)
+// 3. 108 Bows Counter Component
 const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   const [count, setCount] = useState(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -499,123 +587,45 @@ const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
 
 // 4. Scripture Reader Component
 const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
-  const [selectedScriptureId, setSelectedScriptureId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const text = getTextClasses(fontSize);
 
-  const selectedScripture = SCRIPTURES.find(s => s.id === selectedScriptureId);
+  if (selectedId) {
+    const scripture = SCRIPTURES.find(s => s.id === selectedId);
+    if (!scripture) return null;
 
-  // Reset scroll to top when scripture opens
-  useEffect(() => {
-    if (selectedScriptureId && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-    }
-  }, [selectedScriptureId]);
-
-  // Auto-scroll logic: Smoother and slower (approx 25px/s)
-  useEffect(() => {
-    if (isPlaying && selectedScriptureId) {
-      // Scroll 1px every 60ms for smooth, teleprompter-like behavior (slower than before)
-      intervalRef.current = window.setInterval(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollBy({ top: 1, behavior: 'auto' });
-          
-          const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-          // Check if reached bottom (with slight buffer for precision issues)
-          if (Math.ceil(scrollTop + clientHeight) >= scrollHeight) {
-            setIsPlaying(false);
-          }
-        }
-      }, 60);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying, selectedScriptureId]);
-
-  const togglePlay = () => setIsPlaying(!isPlaying);
-
-  if (selectedScripture) {
     return (
-      <div className="flex flex-col h-full bg-zen-50 fade-in relative">
-        <div className="flex items-center p-4 border-b border-zen-100 bg-white/80 backdrop-blur-md z-10 sticky top-0">
-          <button 
-            onClick={() => {
-              setIsPlaying(false);
-              setSelectedScriptureId(null);
-            }}
-            className="p-2 -ml-2 rounded-full hover:bg-zen-100 text-zen-600 transition-colors"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <h2 className={`${text.lg} font-bold text-zen-800 ml-2 serif-font flex-1`}>{selectedScripture.title}</h2>
-          <button
-            onClick={togglePlay}
-            className={`p-2 rounded-full transition-colors ${isPlaying ? 'text-terracotta-500 bg-orange-50' : 'text-zen-600 hover:bg-zen-100'}`}
-          >
-            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-          </button>
-        </div>
-
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto p-6 no-scrollbar"
-        >
-          <div className="max-w-xl mx-auto pb-32">
-            <p className={`${text['2xl']} leading-loose text-zen-800 font-serif whitespace-pre-wrap text-center`}>
-              {selectedScripture.content}
-            </p>
-          </div>
-        </div>
-        
-        {!isPlaying && (
-           <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 fade-in">
-             <button
-               onClick={togglePlay}
-               className="flex items-center gap-2 px-6 py-3 bg-zen-700 text-white rounded-full shadow-lg hover:bg-zen-800 transition-all active:scale-95"
-             >
-               <Play size={18} fill="currentColor" />
-               <span className="text-sm font-medium">자동 읽기 시작</span>
-             </button>
-           </div>
-        )}
+      <div className="flex flex-col h-full p-6 fade-in bg-white/50">
+         <div className="flex items-center mb-6">
+            <button 
+              onClick={() => setSelectedId(null)}
+              className="p-2 -ml-2 text-gray-500 hover:text-zen-600 hover:bg-zen-50 rounded-full transition-all"
+            >
+              <ChevronLeft size={28} />
+            </button>
+            <h2 className={`${text.xl} font-bold text-zen-800 ml-2 serif-font truncate`}>{scripture.title}</h2>
+         </div>
+         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-24">
+            <div className={`${text.lg} leading-loose text-gray-700 whitespace-pre-wrap serif-font p-1`}>
+              {scripture.content}
+            </div>
+         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full p-4 fade-in overflow-y-auto no-scrollbar">
-      <div className="flex flex-col items-center mb-4">
-        <div className="w-12 h-12 bg-zen-100 rounded-full flex items-center justify-center mb-2 text-zen-600">
-           <BookText size={24} />
-        </div>
-        <h2 className={`${text.xl} font-semibold text-zen-600 tracking-widest serif-font`}>불경 공부</h2>
-        <p className={`${text.sm} text-gray-400 mt-1`}>마음을 맑게 하는 경전</p>
-      </div>
-
-      <div className="grid gap-3 max-w-sm mx-auto w-full pb-20">
-        {SCRIPTURES.map((item) => (
+    <div className="flex flex-col h-full p-6 fade-in">
+      <h2 className={`${text.xl} font-semibold text-zen-600 mb-8 tracking-widest serif-font text-center`}>불교 경전</h2>
+      <div className="space-y-4 overflow-y-auto pb-24 custom-scrollbar">
+        {SCRIPTURES.map((s) => (
           <button
-            key={item.id}
-            onClick={() => setSelectedScriptureId(item.id)}
-            className="flex items-center p-4 bg-white rounded-2xl shadow-sm border border-zen-100 hover:border-zen-300 hover:shadow-md transition-all text-left group"
+            key={s.id}
+            onClick={() => setSelectedId(s.id)}
+            className="w-full text-left p-6 bg-white rounded-2xl border border-zen-100 shadow-sm hover:shadow-md hover:border-zen-300 transition-all group flex justify-between items-center"
           >
-            <div className="w-10 h-10 rounded-full bg-zen-50 text-zen-500 flex items-center justify-center mr-4 group-hover:bg-zen-500 group-hover:text-white transition-colors">
-              <BookOpen size={20} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`${text.lg} font-bold text-zen-800 group-hover:text-zen-600 transition-colors serif-font`}>{item.title}</h3>
-            </div>
-            <div className="text-gray-300 group-hover:text-zen-400">
-              <ChevronLeft size={20} className="transform rotate-180" />
-            </div>
+             <span className={`${text.lg} font-medium text-zen-800 group-hover:text-zen-600 serif-font`}>{s.title}</span>
+             <BookText size={20} className="text-zen-200 group-hover:text-zen-400" />
           </button>
         ))}
       </div>
@@ -623,160 +633,16 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 5. AI Monk Counseling Component
-const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
+// 5. ChatBot Component
+const ChatBot = ({ fontSize }: { fontSize: FontSize }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: '어서 오세요. 마음이 무거울 때 언제든 찾아오십시오.' }
+    { role: 'model', text: '반갑습니다. 마음의 고민이 있다면 편안하게 이야기해 주세요.' }
   ]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
-  const [needsKey, setNeedsKey] = useState(false);
-  const [canSelectKey, setCanSelectKey] = useState(false);
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [isListening, setIsListening] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatSessionRef = useRef<Chat | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const chatRef = useRef<Chat | null>(null);
   const text = getTextClasses(fontSize);
-
-  useEffect(() => {
-    // Check if window.aistudio is available for manual key selection
-    if (typeof window !== 'undefined' && (window as any).aistudio) {
-      setCanSelectKey(true);
-    }
-
-    const ai = getAIClient();
-    if (ai) {
-      initChat(ai);
-    } else {
-      setIsApiAvailable(false);
-      setNeedsKey(true);
-      setMessages(prev => [...prev, { role: 'model', text: "상담 기능을 이용하려면 시스템 연결이 필요합니다." }]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ko-KR';
-        recognition.continuous = false; // Simple dictation mode
-        recognition.interimResults = false;
-
-        recognition.onstart = () => setIsListening(true);
-        recognition.onend = () => setIsListening(false);
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setInput(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
-        };
-        recognitionRef.current = recognition;
-      }
-    }
-    return () => {
-        if (recognitionRef.current && isListening) {
-            recognitionRef.current.stop();
-        }
-    };
-  }, []);
-
-  const initChat = (ai: GoogleGenAI) => {
-    try {
-        chatSessionRef.current = ai.chats.create({
-            model: MODEL_NAME,
-            config: {
-                systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma). Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep.",
-            },
-        });
-        setIsApiAvailable(true);
-        setNeedsKey(false);
-    } catch(e) {
-        setIsApiAvailable(false);
-        setNeedsKey(true);
-    }
-  };
-
-  const handleKeySelect = async () => {
-    try {
-        const aiStudio = (window as any).aistudio;
-        if (aiStudio && aiStudio.openSelectKey) {
-            await aiStudio.openSelectKey();
-            // Retry connection - creating new instance creates fresh access
-            const ai = getAIClient();
-            if (ai) {
-                initChat(ai);
-                setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
-            } else {
-                 // Optimistic retry
-                 setIsApiAvailable(true);
-                 setNeedsKey(false);
-                 setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
-            }
-        } else {
-            alert("이 환경에서는 API 키 연결 기능을 지원하지 않습니다. 관리자에게 문의하세요.");
-        }
-    } catch (e) {
-        console.error("Key selection failed", e);
-    }
-  };
-
-  const handleSpeak = async (textToSpeak: string, index: number) => {
-    if (playingId === index) return;
-    setPlayingId(index);
-
-    try {
-      const ai = getAIClient();
-      if (!ai) return;
-
-      const response = await ai.models.generateContent({
-        model: TTS_MODEL_NAME,
-        contents: [{ parts: [{ text: textToSpeak }] }],
-        config: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Charon' }, // 'Charon' for a deeper, monk-like voice
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        const ctx = new AudioContext({ sampleRate: 24000 });
-        const audioBuffer = await decodeAudioData(
-          decode(base64Audio),
-          ctx,
-          24000,
-          1
-        );
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(ctx.destination);
-        source.onended = () => setPlayingId(null);
-        source.start();
-      } else {
-        setPlayingId(null);
-      }
-    } catch (e) {
-      console.error("TTS failed", e);
-      setPlayingId(null);
-    }
-  };
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-        alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
-        return;
-    }
-    if (isListening) {
-        recognitionRef.current.stop();
-    } else {
-        recognitionRef.current.start();
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -786,255 +652,180 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
     scrollToBottom();
   }, [messages]);
 
+  const initChat = () => {
+      const ai = getAIClient();
+      if (!ai) return null;
+      return ai.chats.create({
+          model: MODEL_NAME,
+          config: {
+              systemInstruction: "당신은 자비롭고 지혜로운 불교 승려입니다. 사용자의 고민을 듣고 불교적 가르침과 따뜻한 위로를 건네주세요. 답변은 한국어로 정중하고 온화하게 하십시오.",
+          }
+      });
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-    
-    // Lazy init check
-    let session = chatSessionRef.current;
-    if (!session && isApiAvailable) {
-        const ai = getAIClient();
-        if(ai) {
-            initChat(ai);
-            session = chatSessionRef.current;
-        }
-    }
-
-    if (!session) {
-         setMessages(prev => [...prev, { role: 'model', text: "시스템에 연결되지 않았습니다." }]);
-         return;
-    }
-
-    const userMessage = input.trim();
+    if (!input.trim() || isLoading) return;
+    const userText = input;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-    setIsTyping(true);
+    setMessages(prev => [...prev, { role: 'user', text: userText }]);
+    setIsLoading(true);
 
     try {
-      const result = await session.sendMessage({ message: userMessage });
-      if (result.text) {
-        setMessages(prev => [...prev, { role: 'model', text: result.text }]);
+      if (!chatRef.current) {
+          chatRef.current = initChat();
       }
+      
+      if (!chatRef.current) {
+           setTimeout(() => {
+               setMessages(prev => [...prev, { role: 'model', text: 'API 키가 설정되지 않아 대화를 진행할 수 없습니다.' }]);
+               setIsLoading(false);
+           }, 500);
+           return;
+      }
+
+      const result = await chatRef.current.sendMessage({ message: userText });
+      const responseText = result.text;
+      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', text: "죄송합니다. 마음의 연결이 잠시 끊어졌습니다." }]);
+      console.error(error);
+      setMessages(prev => [...prev, { role: 'model', text: '죄송합니다. 잠시 후 다시 말씀해 주세요.' }]);
     } finally {
-      setIsTyping(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-zen-50 relative fade-in">
-        <div className="p-4 bg-white/80 backdrop-blur-sm border-b border-zen-100 flex items-center justify-center sticky top-0 z-10">
-            <h2 className={`${text.lg} font-semibold text-zen-700`}>스님과의 대화</h2>
-        </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-24">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] p-5 rounded-3xl shadow-sm leading-relaxed ${text.base} ${
-                msg.role === 'user'
-                  ? 'bg-zen-600 text-white rounded-br-none'
-                  : 'bg-white text-gray-700 border border-zen-100 rounded-bl-none'
-              }`}
-            >
-              {msg.role === 'model' && (
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-terracotta-500 text-xs font-bold uppercase tracking-wider">Monk</div>
-                    <button 
-                        onClick={() => handleSpeak(msg.text, index)}
-                        disabled={playingId !== null}
-                        className="text-zen-400 hover:text-zen-600 transition-colors p-1"
-                        title="스님 목소리로 듣기"
-                    >
-                        {playingId === index ? <Loader2 className="animate-spin" size={14}/> : <Volume2 size={14} />}
-                    </button>
-                  </div>
-              )}
-              {msg.text}
+    <div className="flex flex-col h-full bg-zen-50/30">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-4 rounded-2xl ${
+              msg.role === 'user' 
+                ? 'bg-zen-600 text-white rounded-tr-none' 
+                : 'bg-white text-gray-800 shadow-sm border border-zen-100 rounded-tl-none'
+            }`}>
+              <p className={`${text.base} leading-relaxed whitespace-pre-wrap`}>{msg.text}</p>
             </div>
           </div>
         ))}
-        
-        {needsKey && (
-            <div className="flex flex-col items-center justify-center mt-6 p-6 mx-4 bg-white rounded-3xl border border-zen-100 shadow-sm text-center">
-                <p className={`${text.base} text-gray-500 mb-4`}>
-                    {canSelectKey 
-                        ? "원활한 상담을 위해 API 키 연결이 필요합니다." 
-                        : "시스템 설정(API KEY)이 필요하여 상담을 진행할 수 없습니다."}
-                </p>
-                {canSelectKey ? (
-                    <button 
-                        onClick={handleKeySelect}
-                        className="flex items-center gap-2 px-6 py-3 bg-terracotta-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all active:scale-95 font-medium"
-                    >
-                        <Key size={18} />
-                        <span>API 키 연결하기</span>
-                    </button>
-                ) : (
-                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400 break-all">
-                        관리자 설정: 환경 변수 [API_KEY]를 확인해주세요.
-                    </div>
-                )}
-            </div>
-        )}
-
-        {isTyping && (
+        {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-zen-100 p-4 rounded-3xl rounded-bl-none shadow-sm flex gap-2 items-center">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-            </div>
+             <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-zen-100 flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin text-zen-500" />
+                <span className="text-sm text-gray-400">생각 중...</span>
+             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-zen-100">
-        <div className="flex gap-2 items-end">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-                if(e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                }
-            }}
-            rows={1}
-            disabled={!isApiAvailable}
-            placeholder={isListening ? "말씀하세요..." : (isApiAvailable ? "고민을 적어보세요..." : "연결 필요")}
-            className={`flex-1 p-4 rounded-2xl bg-zen-50 border-none focus:ring-2 focus:ring-zen-300 outline-none text-gray-700 placeholder-gray-400 resize-none ${text.base} ${isListening ? 'ring-2 ring-red-300 bg-red-50' : ''}`}
-            style={{ minHeight: '56px', maxHeight: '120px' }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={isTyping || !input.trim() || !isApiAvailable}
-            className="p-4 bg-terracotta-500 text-white rounded-2xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-colors shadow-lg"
-          >
-            <Send size={20} />
-          </button>
-          <button
-            onClick={toggleListening}
-            className={`p-4 rounded-2xl transition-all shadow-lg flex items-center justify-center ${
-                isListening
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
-        </div>
+      <div className="p-4 bg-white border-t border-zen-100 safe-area-bottom pb-20">
+         <div className="flex items-center gap-2 bg-zen-50 p-2 rounded-full border border-zen-100">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="고민을 나누어 보세요..."
+              className="flex-1 bg-transparent px-4 py-2 outline-none text-gray-700 placeholder-gray-400"
+              disabled={isLoading}
+            />
+            <button 
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              className="p-3 bg-zen-600 text-white rounded-full hover:bg-zen-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+               <Send size={20} />
+            </button>
+         </div>
       </div>
     </div>
   );
 };
 
-// --- Main App ---
-export default function App() {
+// 6. Main App Component
+const App = () => {
   const [activeTab, setActiveTab] = useState<Tab>('daily');
   const [fontSize, setFontSize] = useState<FontSize>('normal');
+  const [showSettings, setShowSettings] = useState(false);
 
-  const toggleFontSize = () => {
-    setFontSize(prev => {
-      if (prev === 'small') return 'normal';
-      if (prev === 'normal') return 'large';
-      return 'small';
-    });
-  };
-
-  const getFontSizeLabel = () => {
-    if (fontSize === 'small') return '작게';
-    if (fontSize === 'normal') return '보통';
-    return '크게';
+  // Tab Content Rendering
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'daily': return <DailyWisdom fontSize={fontSize} />;
+      case 'meditation': return <MeditationTimer fontSize={fontSize} />;
+      case 'bowing': return <BowingCounter fontSize={fontSize} />;
+      case 'scripture': return <ScriptureReader fontSize={fontSize} />;
+      case 'chat': return <ChatBot fontSize={fontSize} />;
+      default: return <DailyWisdom fontSize={fontSize} />;
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto h-dvh bg-zen-50 flex flex-col shadow-2xl overflow-hidden relative font-sans text-gray-800">
-      {/* Header */}
-      <header className="relative h-16 flex items-center justify-end px-6 bg-white/80 backdrop-blur-md border-b border-zen-100 z-20 flex-shrink-0">
-        <h1 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold text-zen-800 tracking-tight whitespace-nowrap">
-            <a href="index.html" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <span className="text-terracotta-500 text-2xl">☸</span> 
-                <span className="serif-font">마음의 등불</span>
-            </a>
-        </h1>
-        <button 
-          onClick={toggleFontSize}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zen-100 hover:bg-zen-200 transition-colors text-zen-700 text-xs font-medium relative z-10"
-        >
-          <Type size={14} />
-          <span>{getFontSizeLabel()}</span>
-        </button>
-      </header>
+    <div className="flex flex-col h-screen bg-white text-gray-800 font-sans overflow-hidden">
+        {/* Header */}
+        <header className="flex justify-between items-center p-4 border-b border-zen-100 bg-white z-10">
+            <h1 className="text-xl font-bold text-zen-800 flex items-center gap-2 serif-font">
+                <Flower className="text-zen-500" />
+                마음 챙김
+            </h1>
+            <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-gray-500 hover:text-zen-600 transition-colors">
+                <Type size={24} />
+            </button>
+        </header>
+        
+        {/* Settings Dropdown */}
+        {showSettings && (
+            <div className="absolute top-16 right-4 bg-white p-4 rounded-2xl shadow-xl border border-zen-100 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="text-sm font-medium text-gray-500 mb-3">글자 크기</div>
+                <div className="flex gap-2">
+                    {(['small', 'normal', 'large'] as FontSize[]).map(size => (
+                        <button
+                            key={size}
+                            onClick={() => setFontSize(size)}
+                            className={`px-3 py-1.5 rounded-lg text-sm border ${fontSize === size ? 'bg-zen-100 border-zen-300 text-zen-800' : 'bg-white border-gray-200 text-gray-600'}`}
+                        >
+                            {size === 'small' ? '작게' : size === 'normal' ? '보통' : '크게'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        )}
 
-      {/* Content Area */}
-      <main className="flex-1 overflow-hidden relative w-full bg-zen-50">
-        {activeTab === 'daily' && <DailyWisdom fontSize={fontSize} />}
-        {activeTab === 'meditation' && <MeditationTimer fontSize={fontSize} />}
-        {activeTab === 'scripture' && <ScriptureReader fontSize={fontSize} />}
-        {activeTab === 'bowing' && <BowingCounter fontSize={fontSize} />}
-        {activeTab === 'chat' && <MonkChat fontSize={fontSize} />}
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 overflow-hidden relative bg-zen-50/30">
+            {renderContent()}
+        </main>
 
-      {/* Bottom Navigation */}
-      <nav className="h-20 bg-white border-t border-zen-100 flex justify-around items-center px-2 pb-safe flex-shrink-0 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.05)] z-20">
-        <NavButton 
-          active={activeTab === 'daily'} 
-          onClick={() => setActiveTab('daily')} 
-          icon={<Sun size={24} />} 
-          label="법구" 
-        />
-        <NavButton 
-          active={activeTab === 'meditation'} 
-          onClick={() => setActiveTab('meditation')} 
-          icon={<Sparkles size={24} />} 
-          label="명상" 
-        />
-        <NavButton 
-          active={activeTab === 'scripture'} 
-          onClick={() => setActiveTab('scripture')} 
-          icon={<BookText size={24} />} 
-          label="불경" 
-        />
-        <NavButton 
-          active={activeTab === 'bowing'} 
-          onClick={() => setActiveTab('bowing')} 
-          icon={<Activity size={24} />} 
-          label="108배" 
-        />
-        <NavButton 
-          active={activeTab === 'chat'} 
-          onClick={() => setActiveTab('chat')} 
-          icon={<MessageCircle size={24} />} 
-          label="상담" 
-        />
-      </nav>
+        {/* Bottom Navigation */}
+        <nav className="bg-white border-t border-zen-100 safe-area-bottom">
+            <div className="flex justify-around items-center h-16">
+                <button onClick={() => setActiveTab('daily')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'daily' ? 'text-zen-600' : 'text-gray-400'}`}>
+                    <Sun size={24} strokeWidth={activeTab === 'daily' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">법구</span>
+                </button>
+                <button onClick={() => setActiveTab('meditation')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'meditation' ? 'text-zen-600' : 'text-gray-400'}`}>
+                    <Activity size={24} strokeWidth={activeTab === 'meditation' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">명상</span>
+                </button>
+                <button onClick={() => setActiveTab('bowing')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'bowing' ? 'text-zen-600' : 'text-gray-400'}`}>
+                    <div className="relative">
+                       <Flower size={24} strokeWidth={activeTab === 'bowing' ? 2.5 : 2} />
+                    </div>
+                    <span className="text-[10px] font-medium">108배</span>
+                </button>
+                <button onClick={() => setActiveTab('scripture')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'scripture' ? 'text-zen-600' : 'text-gray-400'}`}>
+                    <BookOpen size={24} strokeWidth={activeTab === 'scripture' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">경전</span>
+                </button>
+                <button onClick={() => setActiveTab('chat')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'chat' ? 'text-zen-600' : 'text-gray-400'}`}>
+                    <MessageCircle size={24} strokeWidth={activeTab === 'chat' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">스님</span>
+                </button>
+            </div>
+        </nav>
     </div>
   );
-}
+};
 
-// Helper Sub-component for Navigation
-const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactElement; label: string }) => (
-  <button
-    onClick={onClick}
-    className={`flex flex-col items-center justify-center flex-1 h-16 rounded-2xl transition-all duration-300 ${
-        active 
-        ? 'text-zen-700 -translate-y-1' 
-        : 'text-gray-400 hover:text-zen-500'
-    }`}
-  >
-    <div className={`p-1.5 rounded-xl transition-colors ${active ? 'bg-zen-100' : 'bg-transparent'}`}>
-        {React.cloneElement(icon, { 
-            className: active ? 'fill-zen-500/20 stroke-zen-600' : 'stroke-current',
-            strokeWidth: active ? 2.5 : 2 
-        } as any)}
-    </div>
-    <span className={`text-[10px] mt-0.5 font-medium ${active ? 'opacity-100' : 'opacity-70'}`}>
-        {label}
-    </span>
-  </button>
-);
+export default App;
