@@ -10,6 +10,7 @@ export interface Sutra {
   title: string;
   shortDescription: string;
   content: string; // The full text
+  audioSrc?: string; // Path to audio file
 }
 
 export enum AppRoute {

@@ -5,6 +5,7 @@ export const SUTRAS: Sutra[] = [
     id: 'gae-gyeong-ge',
     title: '개경게 (開經偈)',
     shortDescription: '경전을 펼치며 찬탄하는 노래',
+    audioSrc: './audio/gae-gyeong-ge.mp3',
     content: `무상심심미묘법 (無上甚深微妙法)
 위없이 높고 깊으며 미묘한 부처님의 법이여
 
@@ -23,6 +24,7 @@ export const SUTRAS: Sutra[] = [
     id: 'heart-sutra',
     title: '마하반야바라밀다심경',
     shortDescription: '모든 것은 공(空)함을 깨닫는 지혜의 핵심 경전',
+    audioSrc: './audio/heart-sutra.mp3',
     content: `관자재보살이 깊은 반야바라밀다를 행할 때, 오온이 모두 공한 것을 비추어 보고 온갖 괴로움과 재앙을 건지느니라.
     
 사리자여, 색이 공과 다르지 않고 공이 색과 다르지 않으며, 색이 곧 공이요 공이 곧 색이니, 수 상 행 식도 그러하니라.
@@ -48,6 +50,7 @@ export const SUTRAS: Sutra[] = [
     id: 'beopgu-kyeong',
     title: '법구경 (발췌)',
     shortDescription: '진리의 말씀, 붓다의 시',
+    audioSrc: './audio/beopgu-kyeong.mp3',
     content: `1. 쌍의 품
     
 마음이 모든 것을 이끈다. 마음이 주인이고 마음이 짓는다.
