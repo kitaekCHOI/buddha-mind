@@ -517,7 +517,7 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   // Auto-scroll logic: Smoother and slower (approx 25px/s)
   useEffect(() => {
     if (isPlaying && selectedScriptureId) {
-      // Scroll 1px every 40ms for smooth, teleprompter-like behavior
+      // Scroll 1px every 60ms for smooth, teleprompter-like behavior (slower than before)
       intervalRef.current = window.setInterval(() => {
         if (scrollContainerRef.current) {
           scrollContainerRef.current.scrollBy({ top: 1, behavior: 'auto' });
@@ -528,7 +528,7 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
             setIsPlaying(false);
           }
         }
-      }, 40);
+      }, 60);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -911,6 +911,13 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             style={{ minHeight: '56px', maxHeight: '120px' }}
           />
           <button
+            onClick={handleSend}
+            disabled={isTyping || !input.trim() || !isApiAvailable}
+            className="p-4 bg-terracotta-500 text-white rounded-2xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-colors shadow-lg"
+          >
+            <Send size={20} />
+          </button>
+          <button
             onClick={toggleListening}
             className={`p-4 rounded-2xl transition-all shadow-lg flex items-center justify-center ${
                 isListening
@@ -919,13 +926,6 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             }`}
           >
             {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
-          <button
-            onClick={handleSend}
-            disabled={isTyping || !input.trim() || !isApiAvailable}
-            className="p-4 bg-terracotta-500 text-white rounded-2xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-colors shadow-lg"
-          >
-            <Send size={20} />
           </button>
         </div>
       </div>
