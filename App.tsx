@@ -8,14 +8,16 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 // Helper to safely get AI instance
 const getAIClient = () => {
   try {
-    // eslint-disable-next-line no-restricted-globals
-    const env = typeof process !== 'undefined' ? process.env : null;
-    const apiKey = env?.API_KEY;
+    // Access process.env.API_KEY directly to allow bundlers to replace it correctly
+    const apiKey = process.env.API_KEY;
 
-    if (!apiKey) return null;
-    return new GoogleGenAI({ apiKey: apiKey });
+    if (!apiKey) {
+      console.warn("API Key is missing or invalid.");
+      return null;
+    }
+    return new GoogleGenAI({ apiKey });
   } catch (error) {
-    console.warn("GoogleGenAI initialization skipped:", error);
+    console.error("GoogleGenAI initialization error:", error);
     return null;
   }
 };
@@ -110,14 +112,20 @@ const getTextClasses = (size: FontSize) => {
 const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
   const [quote, setQuote] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const [now, setNow] = useState<Date>(new Date());
   const text = getTextClasses(fontSize);
 
   useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
     const fetchQuote = async () => {
       try {
         const ai = getAIClient();
         if (!ai) {
-          setQuote("모든 것은 마음에서 일어납니다. 잠시 숨을 고르세요.");
+          // If no AI, fallback to a default quote without error
+          setQuote("마음의 평화는 당신 안에 있습니다. (연결 대기 중)");
           setLoading(false);
           return;
         }
@@ -128,6 +136,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
         });
         setQuote(response.text || "마음의 평화는 당신 안에 있습니다.");
       } catch (error) {
+        console.error(error);
         setQuote("지나간 일은 지나간 대로, 다가올 일은 다가올 대로 두십시오. 지금 이 순간에 머무르십시오.");
       } finally {
         setLoading(false);
@@ -135,7 +144,24 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
     };
 
     fetchQuote();
+
+    return () => clearInterval(timer);
   }, []);
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekDay = weekDays[date.getDay()];
+    return `${year}년 ${month}월 ${day}일 (${weekDay})`;
+  };
+
+  const formatTime = (date: Date) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}시 ${minutes}분`;
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center fade-in bg-gradient-to-b from-zen-50 to-white">
@@ -145,7 +171,13 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
              <Sun className="w-8 h-8 text-zen-500" />
            </div>
         </div>
-        <h2 className={`${text.xl} font-semibold text-zen-600 mb-6 tracking-widest serif-font`}>오늘의 법구</h2>
+        <h2 className={`${text.xl} font-semibold text-zen-600 mb-3 tracking-widest serif-font`}>오늘의 법구</h2>
+        
+        {/* Date and Time Display */}
+        <div className="flex flex-col items-center mb-8 pb-4 border-b border-zen-50">
+           <span className={`${text.sm} text-gray-400 mb-1`}>{formatDate(now)}</span>
+           <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
+        </div>
         
         {loading ? (
           <div className={`${text.base} animate-pulse text-gray-400 py-10`}>지혜를 구하는 중...</div>
@@ -598,7 +630,12 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
       setIsApiAvailable(true);
     } else {
       setIsApiAvailable(false);
-      setMessages(prev => [...prev, { role: 'model', text: "시스템 연결이 원활하지 않습니다 (API Key 누락)." }]);
+      // Removed the explicit error message to look cleaner, or add a subtle one if needed.
+      // But user wanted "Connection Unavailable" fixed. 
+      // If we are here, it means key is missing. We should probably guide them.
+      // But per prompt instructions, we can't ask for key.
+      // We will leave the messages as is, but now getAIClient is more robust.
+      setMessages(prev => [...prev, { role: 'model', text: "지금은 스님께서 출타 중이십니다. (API 연결 실패)" }]);
     }
   }, []);
 
