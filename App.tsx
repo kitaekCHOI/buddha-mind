@@ -210,8 +210,8 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
       </div>
 
       {/* Date and Time Display - Moved Outside Below */}
-      <div className="flex flex-col items-center mt-10">
-           <span className={`${text.sm} text-gray-400 mb-1`}>{formatDate(now)}</span>
+      <div className="flex flex-col items-center mt-16 space-y-2">
+           <span className={`${text['2xl']} text-gray-400 font-serif`}>{formatDate(now)}</span>
            <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
       </div>
     </div>
