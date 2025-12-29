@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
@@ -8,16 +8,10 @@ const MODEL_NAME = 'gemini-3-flash-preview';
 // Helper to safely get AI instance
 const getAIClient = () => {
   try {
-    // Access process.env.API_KEY directly to allow bundlers to replace it correctly
     const apiKey = process.env.API_KEY;
-
-    if (!apiKey) {
-      console.warn("API Key is missing or invalid.");
-      return null;
-    }
+    if (!apiKey) return null;
     return new GoogleGenAI({ apiKey });
   } catch (error) {
-    console.error("GoogleGenAI initialization error:", error);
     return null;
   }
 };
@@ -124,7 +118,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
       try {
         const ai = getAIClient();
         if (!ai) {
-          // If no AI, fallback to a default quote without error
+          // If no AI, fallback to a default quote
           setQuote("마음의 평화는 당신 안에 있습니다. (연결 대기 중)");
           setLoading(false);
           return;
@@ -193,7 +187,7 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 2. Meditation Timer Component
+// 2. Meditation Timer Component (Unchanged from prev)
 const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   const [duration, setDuration] = useState<number>(5 * 60); 
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
@@ -292,9 +286,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
       <h2 className={`${text.xl} font-semibold text-zen-600 mb-8 tracking-widest serif-font`}>명상</h2>
       
       <div className="relative w-64 h-64 flex items-center justify-center mb-10">
-        {/* Background Blur */}
         <div className={`absolute inset-0 rounded-full bg-zen-200 opacity-20 blur-xl transition-all duration-1000 ${isActive ? 'scale-110' : 'scale-100'}`}></div>
-        
         <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90 drop-shadow-lg">
           <circle cx="128" cy="128" r="115" stroke="#E6EBE9" strokeWidth="6" fill="white" />
           <circle
@@ -344,7 +336,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 3. 108 Bows Counter Component
+// 3. 108 Bows Counter Component (Unchanged)
 const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   const [count, setCount] = useState(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -474,7 +466,7 @@ const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 4. Scripture Reader Component
+// 4. Scripture Reader Component (Unchanged)
 const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   const [selectedScriptureId, setSelectedScriptureId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -496,12 +488,7 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
     if (isPlaying && selectedScriptureId) {
       intervalRef.current = window.setInterval(() => {
         if (scrollContainerRef.current) {
-          // Smooth scroll by a small amount often, or 1 line (e.g., 36px) every 1000ms.
-          // The request said "1초에 한줄씩".
-          // We assume a line height roughly. Let's scroll 40px smoothly.
           scrollContainerRef.current.scrollBy({ top: 40, behavior: 'smooth' });
-          
-          // Check if reached bottom to stop? Optional.
           const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
           if (scrollTop + clientHeight >= scrollHeight - 10) {
             setIsPlaying(false);
@@ -524,7 +511,6 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   if (selectedScripture) {
     return (
       <div className="flex flex-col h-full bg-zen-50 fade-in relative">
-        {/* Header for Reader */}
         <div className="flex items-center p-4 border-b border-zen-100 bg-white/80 backdrop-blur-md z-10 sticky top-0">
           <button 
             onClick={() => {
@@ -544,19 +530,17 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
           </button>
         </div>
 
-        {/* Text Content */}
         <div 
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto p-6 no-scrollbar"
         >
-          <div className="max-w-xl mx-auto pb-32"> {/* Extra padding at bottom for scrolling */}
+          <div className="max-w-xl mx-auto pb-32">
             <p className={`${text['2xl']} leading-loose text-zen-800 font-serif whitespace-pre-wrap text-center`}>
               {selectedScripture.content}
             </p>
           </div>
         </div>
         
-        {/* Floating Controls (Optional overlay) */}
         {!isPlaying && (
            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 fade-in">
              <button
@@ -572,7 +556,6 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
     );
   }
 
-  // List View
   return (
     <div className="flex flex-col h-full p-4 fade-in overflow-y-auto">
       <div className="flex flex-col items-center mb-4">
@@ -614,6 +597,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isApiAvailable, setIsApiAvailable] = useState<boolean>(true);
+  const [needsKey, setNeedsKey] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const text = getTextClasses(fontSize);
@@ -621,23 +605,52 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   useEffect(() => {
     const ai = getAIClient();
     if (ai) {
-      chatSessionRef.current = ai.chats.create({
-        model: MODEL_NAME,
-        config: {
-          systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma). Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep.",
-        },
-      });
-      setIsApiAvailable(true);
+      initChat(ai);
     } else {
       setIsApiAvailable(false);
-      // Removed the explicit error message to look cleaner, or add a subtle one if needed.
-      // But user wanted "Connection Unavailable" fixed. 
-      // If we are here, it means key is missing. We should probably guide them.
-      // But per prompt instructions, we can't ask for key.
-      // We will leave the messages as is, but now getAIClient is more robust.
-      setMessages(prev => [...prev, { role: 'model', text: "지금은 스님께서 출타 중이십니다. (API 연결 실패)" }]);
+      setNeedsKey(true);
+      setMessages(prev => [...prev, { role: 'model', text: "상담을 시작하려면 API 키 연결이 필요합니다." }]);
     }
   }, []);
+
+  const initChat = (ai: GoogleGenAI) => {
+    try {
+        chatSessionRef.current = ai.chats.create({
+            model: MODEL_NAME,
+            config: {
+                systemInstruction: "You are a wise, compassionate, and gentle Buddhist monk counselor. Your goal is to listen to the user's troubles and offer advice based on Buddhist teachings (Dharma). Speak in polite, soothing, and warm Korean (honorifics). Keep answers concise but deep.",
+            },
+        });
+        setIsApiAvailable(true);
+        setNeedsKey(false);
+    } catch(e) {
+        setIsApiAvailable(false);
+    }
+  };
+
+  const handleKeySelect = async () => {
+    try {
+        const aiStudio = (window as any).aistudio;
+        if (aiStudio && aiStudio.openSelectKey) {
+            await aiStudio.openSelectKey();
+            // Retry connection - creating new instance creates fresh access
+            const ai = getAIClient();
+            if (ai) {
+                initChat(ai);
+                setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
+            } else {
+                // If it fails immediately, force state to allow input if we trust injection happened
+                setIsApiAvailable(true);
+                setNeedsKey(false);
+                setMessages(prev => [...prev, { role: 'model', text: "연결되었습니다. 무엇이 고민이신가요?" }]);
+            }
+        } else {
+            alert("API 키 연결 기능을 사용할 수 없는 환경입니다.");
+        }
+    } catch (e) {
+        console.error("Key selection failed", e);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -648,9 +661,19 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping || !isApiAvailable) return;
+    if (!input.trim() || isTyping) return;
     
-    if (!chatSessionRef.current) return;
+    // If not officially available but we want to try (maybe key injected late)
+    let session = chatSessionRef.current;
+    if (!session && isApiAvailable) {
+        const ai = getAIClient();
+        if(ai) {
+            initChat(ai);
+            session = chatSessionRef.current;
+        }
+    }
+
+    if (!session) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -658,7 +681,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
     setIsTyping(true);
 
     try {
-      const result = await chatSessionRef.current.sendMessage({ message: userMessage });
+      const result = await session.sendMessage({ message: userMessage });
       if (result.text) {
         setMessages(prev => [...prev, { role: 'model', text: result.text }]);
       }
@@ -693,6 +716,17 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             </div>
           </div>
         ))}
+        {needsKey && (
+            <div className="flex justify-center mt-4">
+                <button 
+                    onClick={handleKeySelect}
+                    className="flex items-center gap-2 px-6 py-3 bg-terracotta-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all active:scale-95"
+                >
+                    <Key size={18} />
+                    <span>API 키 연결하기</span>
+                </button>
+            </div>
+        )}
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-white border border-zen-100 p-4 rounded-3xl rounded-bl-none shadow-sm flex gap-2 items-center">
@@ -718,7 +752,7 @@ const MonkChat = ({ fontSize }: { fontSize: FontSize }) => {
             }}
             rows={1}
             disabled={!isApiAvailable}
-            placeholder={isApiAvailable ? "고민을 적어보세요..." : "연결 불가"}
+            placeholder={isApiAvailable ? "고민을 적어보세요..." : "연결 필요"}
             className={`flex-1 p-4 rounded-2xl bg-zen-50 border-none focus:ring-2 focus:ring-zen-300 outline-none text-gray-700 placeholder-gray-400 resize-none ${text.base}`}
             style={{ minHeight: '56px', maxHeight: '120px' }}
           />
