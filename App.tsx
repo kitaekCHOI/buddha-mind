@@ -190,19 +190,13 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center fade-in bg-gradient-to-b from-zen-50 to-white">
-      <div className="bg-white rounded-3xl p-8 shadow-xl border border-zen-100 max-w-sm w-full transform transition-all hover:scale-[1.02] duration-500">
+      <div className="bg-white rounded-3xl p-8 shadow-xl border border-zen-100 max-w-sm w-full transform transition-all hover:scale-[1.02] duration-500 z-10">
         <div className="flex justify-center mb-6">
            <div className="p-3 bg-zen-50 rounded-full">
              <Sun className="w-8 h-8 text-zen-500" />
            </div>
         </div>
-        <h2 className={`${text.xl} font-semibold text-zen-600 mb-3 tracking-widest serif-font`}>오늘의 법구</h2>
-        
-        {/* Date and Time Display */}
-        <div className="flex flex-col items-center mb-8 pb-4 border-b border-zen-50">
-           <span className={`${text.sm} text-gray-400 mb-1`}>{formatDate(now)}</span>
-           <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
-        </div>
+        <h2 className={`${text.xl} font-semibold text-zen-600 mb-6 tracking-widest serif-font`}>오늘의 법구</h2>
         
         {loading ? (
           <div className={`${text.base} animate-pulse text-gray-400 py-10`}>지혜를 구하는 중...</div>
@@ -213,6 +207,12 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Date and Time Display - Moved Outside Below */}
+      <div className="flex flex-col items-center mt-10">
+           <span className={`${text.sm} text-gray-400 mb-1`}>{formatDate(now)}</span>
+           <span className={`${text['2xl']} text-zen-600 font-serif font-medium`}>{formatTime(now)}</span>
       </div>
     </div>
   );
