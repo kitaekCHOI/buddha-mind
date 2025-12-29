@@ -466,7 +466,7 @@ const BowingCounter = ({ fontSize }: { fontSize: FontSize }) => {
   );
 };
 
-// 4. Scripture Reader Component (Unchanged)
+// 4. Scripture Reader Component
 const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
   const [selectedScriptureId, setSelectedScriptureId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -483,18 +483,21 @@ const ScriptureReader = ({ fontSize }: { fontSize: FontSize }) => {
     }
   }, [selectedScriptureId]);
 
-  // Auto-scroll logic: 1 line per second (approx 40px/s for readability)
+  // Auto-scroll logic: Smoother and slower (approx 25px/s)
   useEffect(() => {
     if (isPlaying && selectedScriptureId) {
+      // Scroll 1px every 40ms for smooth, teleprompter-like behavior
       intervalRef.current = window.setInterval(() => {
         if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollBy({ top: 40, behavior: 'smooth' });
+          scrollContainerRef.current.scrollBy({ top: 1, behavior: 'auto' });
+          
           const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-          if (scrollTop + clientHeight >= scrollHeight - 10) {
+          // Check if reached bottom (with slight buffer for precision issues)
+          if (Math.ceil(scrollTop + clientHeight) >= scrollHeight) {
             setIsPlaying(false);
           }
         }
-      }, 1000);
+      }, 40);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
