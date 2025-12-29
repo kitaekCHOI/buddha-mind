@@ -1,5 +1,4 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { ChatMessage } from '../types';
 
 // Initialize the API client
 const apiKey = process.env.API_KEY || '';
@@ -29,19 +28,37 @@ export const createMonkChat = (): Chat => {
   });
 };
 
-export const sendMessageToMonk = async (chat: Chat, message: string): Promise<string> => {
+/**
+ * Sends a message to the monk and streams the response back.
+ * Returns an AsyncGenerator that yields text chunks.
+ */
+export const sendMessageStream = async function* (chat: Chat, message: string): AsyncGenerator<string, void, unknown> {
   if (!apiKey) {
-    // Simulate network delay for better UX even without API key
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return "현재 마음의 연결(API Key)이 원활하지 않습니다. 설정에서 API 키를 확인해주세요.";
+    // Simulate streaming for fallback message
+    const fallbackMsg = "현재 마음의 연결(API Key)이 원활하지 않습니다. 설정에서 API 키를 확인해주세요.";
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    await delay(500);
+    const chunkSize = 5;
+    for (let i = 0; i < fallbackMsg.length; i += chunkSize) {
+      yield fallbackMsg.slice(i, i + chunkSize);
+      await delay(50);
+    }
+    return;
   }
 
   try {
-    const result: GenerateContentResponse = await chat.sendMessage({ message });
-    return result.text || "죄송합니다. 마음의 소리를 듣지 못했습니다. 다시 말씀해 주시겠습니까?";
+    const streamResult = await chat.sendMessageStream({ message });
+    
+    for await (const chunk of streamResult) {
+      const c = chunk as GenerateContentResponse;
+      if (c.text) {
+        yield c.text;
+      }
+    }
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "지금은 깊은 명상 중이라 답변을 드리기 어렵습니다. 잠시 후 다시 시도해 주세요.";
+    console.error("Gemini Streaming Error:", error);
+    yield "지금은 깊은 명상 중이라 답변을 드리기 어렵습니다. 잠시 후 다시 시도해 주세요.";
   }
 };
 

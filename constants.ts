@@ -2,6 +2,24 @@ import { Sutra } from "./types";
 
 export const SUTRAS: Sutra[] = [
   {
+    id: 'gae-gyeong-ge',
+    title: '개경게 (開經偈)',
+    shortDescription: '경전을 펼치며 찬탄하는 노래',
+    content: `무상심심미묘법 (無上甚深微妙法)
+위없이 높고 깊으며 미묘한 부처님의 법이여
+
+백천만겁난조우 (百千萬劫難遭遇)
+백천만 겁이 지나도 만나뵙기 어려워라
+
+아금문견득수지 (我今聞見得受持)
+나는 이제 듣고 보고 받아 지니니
+
+원해여래진실의 (願解如來眞實義)
+원컨대 부처님의 진실한 뜻 알아지이다.
+
+옴 아라남 아라다 (3번)`
+  },
+  {
     id: 'heart-sutra',
     title: '마하반야바라밀다심경',
     shortDescription: '모든 것은 공(空)함을 깨닫는 지혜의 핵심 경전',

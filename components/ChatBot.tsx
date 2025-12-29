@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, User, Loader2 } from 'lucide-react';
 import { ChatMessage } from '../types';
-import { createMonkChat, sendMessageToMonk } from '../services/gemini';
+import { createMonkChat, sendMessageStream } from '../services/gemini';
 import { Chat } from '@google/genai';
 
 const ChatBot: React.FC = () => {
@@ -14,7 +14,7 @@ const ChatBot: React.FC = () => {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use a ref to persist the chat session instance across renders
@@ -36,34 +36,56 @@ const ChatBot: React.FC = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading || !chatSessionRef.current) return;
+    if (!inputValue.trim() || isStreaming || !chatSessionRef.current) return;
 
+    const userText = inputValue;
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      text: inputValue,
+      text: userText,
       timestamp: Date.now()
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
-    setIsLoading(true);
+    setIsStreaming(true);
+
+    // Create a placeholder for the monk's response
+    const botMsgId = (Date.now() + 1).toString();
+    const initialBotMsg: ChatMessage = {
+      id: botMsgId,
+      role: 'model',
+      text: '', // Start empty
+      timestamp: Date.now()
+    };
+    
+    setMessages(prev => [...prev, initialBotMsg]);
 
     try {
-      const responseText = await sendMessageToMonk(chatSessionRef.current, userMsg.text);
-      
-      const botMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'model',
-        text: responseText,
-        timestamp: Date.now()
-      };
-      
-      setMessages(prev => [...prev, botMsg]);
+      const stream = sendMessageStream(chatSessionRef.current, userText);
+      let fullText = "";
+
+      for await (const chunk of stream) {
+        fullText += chunk;
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMsgId 
+              ? { ...msg, text: fullText } 
+              : msg
+          )
+        );
+      }
     } catch (error) {
       console.error("Chat Error", error);
+      setMessages(prev => 
+        prev.map(msg => 
+            msg.id === botMsgId 
+            ? { ...msg, text: msg.text + "\n(통신에 어려움이 있었습니다.)" } 
+            : msg
+        )
+      );
     } finally {
-      setIsLoading(false);
+      setIsStreaming(false);
     }
   };
 
@@ -76,36 +98,42 @@ const ChatBot: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex-1 overflow-y-auto space-y-4 py-4 px-2">
+      <div className="flex-1 overflow-y-auto space-y-6 py-4 px-2">
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div
-              className={`max-w-[80%] rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm ${
-                msg.role === 'user'
-                  ? 'bg-stone-700 text-white rounded-br-none'
-                  : 'bg-white text-stone-800 border border-stone-100 rounded-bl-none'
-              }`}
-            >
-              {msg.text.split('\n').map((line, i) => (
-                <React.Fragment key={i}>
-                  {line}
-                  {i < msg.text.split('\n').length - 1 && <br />}
-                </React.Fragment>
-              ))}
+            <div className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              
+              {/* Avatar / Name */}
+              <div className="flex items-center space-x-2 mb-1 px-1">
+                 {msg.role === 'model' ? (
+                   <>
+                    <span className="text-xs font-bold text-monk-700">마음의 등불</span>
+                   </>
+                 ) : (
+                   <span className="text-xs font-bold text-stone-500">나</span>
+                 )}
+              </div>
+
+              {/* Bubble */}
+              <div
+                className={`rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${
+                  msg.role === 'user'
+                    ? 'bg-stone-700 text-white rounded-tr-none'
+                    : 'bg-white text-stone-800 border border-stone-100 rounded-tl-none'
+                }`}
+              >
+                {msg.text || (
+                  <span className="inline-flex items-center space-x-1">
+                    <Loader2 size={14} className="animate-spin text-monk-500" />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div className="flex justify-start w-full">
-            <div className="bg-white border border-stone-100 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center space-x-2">
-              <Sparkles size={16} className="text-monk-500 animate-pulse" />
-              <span className="text-xs text-stone-400">스님이 생각 중이십니다...</span>
-            </div>
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -119,10 +147,10 @@ const ChatBot: React.FC = () => {
         />
         <button
           onClick={handleSend}
-          disabled={!inputValue.trim() || isLoading}
+          disabled={!inputValue.trim() || isStreaming}
           className="absolute right-2 top-2 p-2 bg-monk-500 text-white rounded-xl hover:bg-monk-600 disabled:bg-stone-300 disabled:cursor-not-allowed transition-colors"
         >
-          <Send size={18} />
+          {isStreaming ? <Sparkles size={18} className="animate-spin" /> : <Send size={18} />}
         </button>
       </div>
     </div>
