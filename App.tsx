@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key, Volume2, Loader2, Mic, MicOff, Music } from 'lucide-react';
+import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower, Activity, Type, Sun, BookText, ChevronLeft, Key, Volume2, Volume1, Loader2, Mic, MicOff, Music } from 'lucide-react';
 
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
 const TTS_MODEL_NAME = 'gemini-2.5-flash-preview-tts';
+// Example Meditation Music URL (Royalty Free)
+const MEDITATION_MUSIC_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=zen-meditation-113829.mp3";
 
 // Helper to safely get AI instance
 const getAIClient = () => {
@@ -223,10 +225,11 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   const [timeLeft, setTimeLeft] = useState<number>(5 * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(true);
+  const [volume, setVolume] = useState<number>(0.5); // Default volume 50%
   
   const intervalRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const backgroundAudioRef = useRef<{ nodes: AudioNode[], gain: GainNode } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const text = getTextClasses(fontSize);
 
@@ -248,70 +251,37 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
     }
   };
 
-  const startBackgroundMusic = () => {
-      if (!isMusicEnabled) return;
-      if (backgroundAudioRef.current) return; // Already playing
-      if (!audioCtxRef.current) initAudio();
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
+  // Initialize Music Audio Element
+  useEffect(() => {
+    audioRef.current = new Audio(MEDITATION_MUSIC_URL);
+    audioRef.current.loop = true;
+    audioRef.current.volume = volume;
 
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0, ctx.currentTime);
-      masterGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 3); // Soft fade in to low volume
-      masterGain.connect(ctx.destination);
+    return () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+    };
+  }, []);
 
-      const nodes: AudioNode[] = [];
+  // Control Music Playback
+  useEffect(() => {
+      if (!audioRef.current) return;
 
-      // Frequencies for a soothing D Major feel (Drone)
-      // D3 (146.83), A3 (220.00), D4 (293.66)
-      const freqs = [146.83, 220.00, 293.66];
-      
-      freqs.forEach(f => {
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.value = f;
-          
-          // Add slight random detune for warmth and natural feel
-          osc.detune.value = Math.random() * 8 - 4;
-          
-          const oscGain = ctx.createGain();
-          oscGain.gain.value = 0.25; // Individual osc volume scaling
-          
-          osc.connect(oscGain);
-          oscGain.connect(masterGain);
-          osc.start();
-          nodes.push(osc);
-          nodes.push(oscGain);
-      });
+      if (isActive && isMusicEnabled) {
+          audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+      } else {
+          audioRef.current.pause();
+      }
+  }, [isActive, isMusicEnabled]);
 
-      backgroundAudioRef.current = { nodes, gain: masterGain };
-  };
-
-  const stopBackgroundMusic = () => {
-       if (backgroundAudioRef.current && audioCtxRef.current) {
-           const { nodes, gain } = backgroundAudioRef.current;
-           const ctx = audioCtxRef.current;
-           
-           // Fade out
-           try {
-              gain.gain.cancelScheduledValues(ctx.currentTime);
-              gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-              gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.5);
-              
-              setTimeout(() => {
-                  nodes.forEach(node => {
-                      if (node instanceof OscillatorNode) {
-                          try { node.stop(); } catch(e){}
-                      }
-                      node.disconnect();
-                  });
-                  gain.disconnect();
-              }, 1600);
-           } catch (e) {}
-           
-           backgroundAudioRef.current = null;
-       }
-  };
+  // Control Volume
+  useEffect(() => {
+      if (audioRef.current) {
+          audioRef.current.volume = volume;
+      }
+  }, [volume]);
 
   const playBellSound = () => {
     try {
@@ -372,18 +342,6 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
     };
   }, [isActive, timeLeft]);
 
-  // Background Music Effect
-  useEffect(() => {
-      if (isActive && isMusicEnabled) {
-          startBackgroundMusic();
-      } else {
-          stopBackgroundMusic();
-      }
-      return () => {
-          stopBackgroundMusic();
-      }
-  }, [isActive, isMusicEnabled]);
-
   const handleDurationChange = (newDuration: number) => {
     setDuration(newDuration);
     if (!isActive) {
@@ -394,7 +352,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   const progress = ((duration - timeLeft) / duration) * 100;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 fade-in">
+    <div className="flex flex-col items-center justify-center h-full p-6 fade-in relative">
       <h2 className={`${text.xl} font-semibold text-zen-600 mb-8 tracking-widest serif-font`}>명상</h2>
       
       <div className="relative w-64 h-64 flex items-center justify-center mb-10">
@@ -414,26 +372,45 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 mb-10">
-        <button 
-          onClick={toggleTimer}
-          className="w-16 h-16 rounded-full bg-zen-500 text-white hover:bg-zen-600 transition-all shadow-lg hover:shadow-zen-200 flex items-center justify-center"
-        >
-          {isActive ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
-        </button>
-        <button 
-          onClick={resetTimer}
-          className="w-16 h-16 rounded-full bg-white text-zen-500 border border-zen-200 hover:bg-zen-50 transition-colors shadow-md flex items-center justify-center"
-        >
-          <RotateCcw size={28} />
-        </button>
-        <button 
-          onClick={() => setIsMusicEnabled(!isMusicEnabled)}
-          className={`w-12 h-12 rounded-full border transition-all shadow-sm flex items-center justify-center ${isMusicEnabled ? 'bg-zen-100 text-zen-600 border-zen-200' : 'bg-white text-gray-300 border-gray-100'}`}
-          title="배경 음악 토글"
-        >
-          <Music size={20} />
-        </button>
+      <div className="flex flex-col items-center gap-6 mb-8 w-full max-w-xs">
+        <div className="flex items-center gap-6">
+            <button 
+            onClick={toggleTimer}
+            className="w-16 h-16 rounded-full bg-zen-500 text-white hover:bg-zen-600 transition-all shadow-lg hover:shadow-zen-200 flex items-center justify-center"
+            >
+            {isActive ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
+            </button>
+            <button 
+            onClick={resetTimer}
+            className="w-16 h-16 rounded-full bg-white text-zen-500 border border-zen-200 hover:bg-zen-50 transition-colors shadow-md flex items-center justify-center"
+            >
+            <RotateCcw size={28} />
+            </button>
+            <button 
+            onClick={() => setIsMusicEnabled(!isMusicEnabled)}
+            className={`w-12 h-12 rounded-full border transition-all shadow-sm flex items-center justify-center ${isMusicEnabled ? 'bg-zen-100 text-zen-600 border-zen-200' : 'bg-white text-gray-300 border-gray-100'}`}
+            title="배경 음악 토글"
+            >
+            <Music size={20} />
+            </button>
+        </div>
+
+        {/* Volume Slider - Only visible when music is enabled */}
+        {isMusicEnabled && (
+            <div className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-sm border border-zen-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Volume1 size={18} className="text-zen-400" />
+                <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.01" 
+                    value={volume} 
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="flex-1 h-1.5 bg-zen-100 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-zen-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm hover:[&::-webkit-slider-thumb]:bg-zen-600 transition-all"
+                />
+                <Volume2 size={18} className="text-zen-400" />
+            </div>
+        )}
       </div>
 
       <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-zen-100 shadow-sm">
@@ -767,7 +744,7 @@ const App = () => {
         <header className="flex justify-between items-center p-4 border-b border-zen-100 bg-white z-10">
             <h1 className="text-xl font-bold text-zen-800 flex items-center gap-2 serif-font">
                 <Flower className="text-zen-500" />
-                마음 챙김
+                마음의 등불
             </h1>
             <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-gray-500 hover:text-zen-600 transition-colors">
                 <Type size={24} />
