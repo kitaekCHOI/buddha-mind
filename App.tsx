@@ -661,7 +661,7 @@ const ChatBot = ({ fontSize }: { fontSize: FontSize }) => {
       }
 
       const result = await chatRef.current.sendMessage({ message: userText });
-      const responseText = result.text;
+      const responseText = result.text || '죄송합니다. 응답을 불러올 수 없습니다.';
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (error) {
       console.error(error);
@@ -739,9 +739,9 @@ const App = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white text-gray-800 font-sans overflow-hidden">
+    <div className="flex flex-col h-dvh bg-white text-gray-800 font-sans overflow-hidden supports-[height:100dvh]:h-[100dvh]">
         {/* Header */}
-        <header className="flex justify-between items-center p-4 border-b border-zen-100 bg-white z-10">
+        <header className="flex justify-between items-center p-4 border-b border-zen-100 bg-white z-10 shrink-0">
             <h1 className="text-xl font-bold text-zen-800 flex items-center gap-2 serif-font">
                 <Flower className="text-zen-500" />
                 마음의 등불
@@ -775,7 +775,7 @@ const App = () => {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="bg-white border-t border-zen-100 safe-area-bottom">
+        <nav className="bg-white border-t border-zen-100 pb-[env(safe-area-inset-bottom)] shrink-0 z-50">
             <div className="flex justify-around items-center h-16">
                 <button onClick={() => setActiveTab('daily')} className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${activeTab === 'daily' ? 'text-zen-600' : 'text-gray-400'}`}>
                     <Sun size={24} strokeWidth={activeTab === 'daily' ? 2.5 : 2} />
