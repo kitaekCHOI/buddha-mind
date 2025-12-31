@@ -5,8 +5,19 @@ import { BookOpen, MessageCircle, Play, Pause, RotateCcw, Sparkles, Send, Flower
 // Configuration
 const MODEL_NAME = 'gemini-3-flash-preview';
 const TTS_MODEL_NAME = 'gemini-2.5-flash-preview-tts';
-// Example Meditation Music URL (Royalty Free)
+// Meditation Music (Using a reliable royalty-free source as the "attached file")
 const MEDITATION_MUSIC_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=zen-meditation-113829.mp3";
+
+// Fallback quotes for when API is unavailable or quota exceeded
+const FALLBACK_QUOTES = [
+  "지나간 일은 지나간 대로, 다가올 일은 다가올 대로 두십시오. 지금 이 순간에 머무르십시오.",
+  "물은 바위를 뚫지만, 그것은 물의 힘이 아니라 꾸준함이다.",
+  "타인의 허물을 보지 말고 자신의 마음을 살피십시오.",
+  "모든 것은 마음에서 비롯됩니다. 마음이 맑으면 세상이 맑게 보입니다.",
+  "천 리 길도 한 걸음부터 시작됩니다. 오늘 걷지 않으면 내일은 뛰어야 합니다.",
+  "성내는 마음을 억누르지 말고, 그 마음이 일어나는 원인을 지켜보십시오.",
+  "행복은 멀리 있는 것이 아니라, 내 마음속의 만족에 있습니다."
+];
 
 // Helper to safely get AI instance
 const getAIClient = () => {
@@ -151,8 +162,9 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
       try {
         const ai = getAIClient();
         if (!ai) {
-          // If no AI, fallback to a default quote
-          setQuote("마음의 평화는 당신 안에 있습니다. (연결 대기 중)");
+          // If no AI, fallback to a random quote
+          const randomQuote = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
+          setQuote(randomQuote);
           setLoading(false);
           return;
         }
@@ -161,10 +173,20 @@ const DailyWisdom = ({ fontSize }: { fontSize: FontSize }) => {
           model: MODEL_NAME,
           contents: "Generate a short, profound, and soothing Buddhist quote or teaching in Korean. It should be one or two sentences long. Do not add explanations, just the quote and the source if applicable.",
         });
-        setQuote(response.text || "마음의 평화는 당신 안에 있습니다.");
-      } catch (error) {
-        console.error(error);
-        setQuote("지나간 일은 지나간 대로, 다가올 일은 다가올 대로 두십시오. 지금 이 순간에 머무르십시오.");
+        setQuote(response.text || FALLBACK_QUOTES[0]);
+      } catch (error: any) {
+        // Handle Quota Limit (429) gracefully
+        const errString = JSON.stringify(error);
+        const isQuotaError = errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || error?.status === 429;
+        
+        if (isQuotaError) {
+             console.warn("DailyWisdom: API Quota exceeded. Using fallback quote.");
+        } else {
+             console.error("DailyWisdom Error:", error);
+        }
+
+        const randomQuote = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
+        setQuote(randomQuote);
       } finally {
         setLoading(false);
       }
@@ -254,7 +276,7 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   // Initialize Music Audio Element
   useEffect(() => {
     audioRef.current = new Audio(MEDITATION_MUSIC_URL);
-    audioRef.current.loop = true;
+    audioRef.current.loop = true; // Loop enabled for continuous playback
     audioRef.current.volume = volume;
 
     return () => {
@@ -310,7 +332,13 @@ const MeditationTimer = ({ fontSize }: { fontSize: FontSize }) => {
   };
 
   const toggleTimer = () => {
-    if (!isActive) initAudio();
+    if (!isActive) {
+        initAudio(); // Initialize audio context
+        // Ensure background music starts if enabled, fixing potential user-gesture issues
+        if (isMusicEnabled && audioRef.current) {
+            audioRef.current.play().catch(e => console.log("Manual play failed", e));
+        }
+    }
     setIsActive(!isActive);
   };
 
@@ -663,9 +691,18 @@ const ChatBot = ({ fontSize }: { fontSize: FontSize }) => {
       const result = await chatRef.current.sendMessage({ message: userText });
       const responseText = result.text || '죄송합니다. 응답을 불러올 수 없습니다.';
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setMessages(prev => [...prev, { role: 'model', text: '죄송합니다. 잠시 후 다시 말씀해 주세요.' }]);
+      
+      let errorMessage = '죄송합니다. 잠시 후 다시 말씀해 주세요.';
+      const errString = JSON.stringify(error) + (error?.message || '');
+      
+      // Check for Quota Exceeded (429)
+      if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = '현재 AI 서비스 이용량이 많아 답변을 드릴 수 없습니다. 내일 다시 시도해 주세요. (일일 사용량 초과)';
+      }
+
+      setMessages(prev => [...prev, { role: 'model', text: errorMessage }]);
     } finally {
       setIsLoading(false);
     }
