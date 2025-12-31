@@ -1,0 +1,80 @@
+
+/* Zen 테마 스타일 설정 */
+:root {
+  --zen-50: #F5F7F6;
+  --zen-500: #5A7D71;
+  --zen-800: #253630;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: var(--zen-50) !important;
+  color: var(--zen-800);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior-y: contain;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100dvh;
+}
+
+.serif-font {
+  font-family: 'Noto Serif KR', serif;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes lotusSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lotus-spin {
+  animation: lotusSpin 20s linear infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.15; }
+  50% { transform: scale(1.35); opacity: 0.35; }
+}
+
+.breathe-effect {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+/* 모바일 인터랙션 */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 경전 및 텍스트 가독성 */
+.scripture-content {
+  line-height: 2.4;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+/* 탭 바 그림자 */
+nav {
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
+}
